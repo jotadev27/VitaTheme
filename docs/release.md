@@ -3,10 +3,9 @@
 How a version of VitaTheme is turned into files people can download. For how the artifacts
 are built and what is in them, see [packaging.md](./packaging.md).
 
-Releases are made **by hand**. The packaging configuration sets `publish: null`; CI retains
-the verified Windows installer as a workflow artifact for download, but does not create a
-GitHub release. There is no update service — VitaTheme does not phone home to look for a new
-version.
+Releases are made **by hand**. The packaging configuration sets `publish: null`, so packaging
+does not create a GitHub release. There is no update service — VitaTheme does not phone home
+to look for a new version.
 
 ## What a release is
 
@@ -20,8 +19,7 @@ VitaTheme-<version>-x86_64.AppImage  Linux
 ```
 
 Each must be built on its own platform — the programs that produce installers are platform
-binaries. A release therefore needs a macOS machine, a Windows machine and a Linux machine,
-or the equivalent CI runners.
+binaries. A release therefore needs a macOS machine, a Windows machine and a Linux machine.
 
 ## Before building
 
@@ -47,9 +45,8 @@ pnpm run verify:package
 capabilities, the contents of the archive, the recorded integrity hash, the absence of a
 dependency tree, and that nothing in the package names the machine that built it.
 
-The `installers` job in CI does exactly this on all three platforms, and can be started by
-Download the Windows installer artifact from the successful Windows job before its 14-day
-retention period ends; attach it to a release only after reviewing and testing it.
+Build the Windows installer on Windows, verify the packaged app, then copy the installer to
+local release staging for review and testing.
 
 ## Checking before publishing
 
@@ -100,9 +97,8 @@ app-specific password or an App Store Connect API key for notarisation. `mac.ide
 name the certificate instead of being `null`, hardened runtime would be switched on with an
 entitlements file, and `notarize` would be configured. The credentials reach the build as
 environment variables (`CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_KEY`, and their like) held
-by whoever runs the release — never in the repository, never in the workflow file, and in CI
-only as repository secrets. Signing replaces the ad-hoc signature described in
-[packaging.md](./packaging.md); the fuses stay exactly as they are.
+by whoever runs the release — never in the repository. Signing replaces the ad-hoc signature
+described in [packaging.md](./packaging.md); the fuses stay exactly as they are.
 
 **Windows.** A code-signing certificate, increasingly one that lives on a hardware token or
 in a cloud signing service, which changes how a build machine can use it. `win.signExecutable`

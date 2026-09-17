@@ -17,7 +17,7 @@ afterwards; **the application itself never connects to anything at runtime.**
 ```sh
 pnpm install
 pnpm run dev          # run the application, reloading the interface as you edit
-pnpm run check        # typecheck, lint, formatting and tests — what CI runs
+pnpm run check        # typecheck, lint, formatting and tests
 ```
 
 Individually: `pnpm run typecheck`, `pnpm run lint`, `pnpm run format:check`, `pnpm run test`.
@@ -101,7 +101,7 @@ themselves platform binaries, and the ones electron-builder ships for macOS are 
 an Apple Silicon machine without Rosetta they cannot start at all — `makensis` and the
 AppImage tool both fail with `spawn Unknown system error -86`, which is the kernel refusing
 a binary of the wrong architecture. So the installers are built where they belong: on a
-machine of that platform, or on that platform's runner in CI.
+machine of that platform.
 
 Only macOS arm64 has been **run**. The packaged application was launched and exercised —
 opening a project, dragging artwork in, converting a picture, previewing, undoing, redoing,
@@ -125,7 +125,7 @@ What that means for anyone who runs it:
   `xattr -d com.apple.quarantine /Applications/VitaTheme.app`.
 
 Signing and notarising is a separate piece of work, needing an Apple Developer account and
-credentials that belong in a release pipeline rather than in this repository. See
+credentials held by the person preparing the release rather than in this repository. See
 [release.md](./release.md) for what it would involve.
 
 ### The ad-hoc signature, which is not that
@@ -183,19 +183,6 @@ Two capabilities are deliberately left as Electron ships them:
   application never writes one: it loads no remote content and its content security policy
   refuses every connection. Turning it on would encrypt an empty file and, on Linux, involve
   the desktop keyring to do it.
-
-## Continuous integration
-
-`.github/workflows/ci.yml` runs the checks and the tests on Linux, macOS and Windows, then
-assembles the application on each of them and runs `pnpm run verify:package` against the
-result. The installers themselves are built on pushes to `main` and on request, each on its
-own platform, which is the only place their helper programs run.
-
-CI keeps only the verified Windows installer as a short-lived workflow artifact for manual
-release preparation. It does not publish a GitHub release or upload debug files. Nothing is
-signed: CI sets `CSC_IDENTITY_AUTO_DISCOVERY: false` so a runner cannot sign with a
-certificate it happens to find, and `publish: null` prevents automatic release publishing.
-See [release.md](./release.md).
 
 ## Version
 

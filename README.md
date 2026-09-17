@@ -17,11 +17,11 @@ VitaTheme is a desktop editor for creating, editing, previewing, validating and 
 
 ## Platform status
 
-| Platform            | Status                                                                                           |
-| ------------------- | ------------------------------------------------------------------------------------------------ |
-| macOS Apple Silicon | Packaged and verified; the build is unsigned and not notarized.                                  |
-| Windows x64         | NSIS installer configuration and Windows CI build are provided; runtime testing remains pending. |
-| Linux x64           | AppImage build configuration is provided; runtime testing remains pending.                       |
+| Platform            | Status                                                                                         |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| macOS Apple Silicon | Packaged and verified; the build is unsigned and not notarized.                                |
+| Windows x64         | NSIS installer configuration is provided; build and runtime testing on Windows remain pending. |
+| Linux x64           | AppImage build configuration is provided; runtime testing remains pending.                     |
 
 The public release files, when available, will be attached to the GitHub release. Build instructions are below.
 
