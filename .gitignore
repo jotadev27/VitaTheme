@@ -1,0 +1,78 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+out/
+build/
+release/
+installer/
+*.tsbuildinfo
+*.blockmap
+builder-debug.yml
+builder-effective-config.yaml
+
+# Test output
+coverage/
+.nyc_output/
+*.cpuprofile
+*.heapprofile
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Editor and OS artifacts
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+.AppleDouble
+.LSOverride
+._*
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Tool caches
+.eslintcache
+.cache/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local drafts and temporary files
+*.tmp
+*.temp
+*.bak
+*.orig
+*~
+*.autosave
+*.vitatheme
+*.assets/
+*.at9
+*.AT9
+*.dmg
+*.exe
+*.AppImage
+*.asar
+*.zip
+
+# Agent and development-local files
+CLAUDE.md
+AGENTS.md
+.claude/
+.codex/
+.agent/
+.agents/
+scratch/
+scratchpad/
+tmp/
+temp/

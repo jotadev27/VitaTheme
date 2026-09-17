@@ -1,0 +1,173 @@
+# How VitaTheme is turned into something somebody can install.
+#
+# The application is built first by electron-vite into `out/`, and that directory plus the
+# package manifest and license are the whole of what ships: every dependency is bundled during that build,
+# so there is no `node_modules` in the package and nothing for a package manager's layout to
+# get wrong. Everything below is deliberately explicit — a contributor should be able to read
+# this file and know exactly what ends up in the artifact.
+
+appId: io.github.vitatheme.app
+productName: VitaTheme
+# Not a person and not a company: an open-source project, which is what this is.
+copyright: The VitaTheme contributors
+
+# Nothing is uploaded anywhere by building.
+#
+# Left unset, electron-builder works out a publishing destination from the repository and is
+# one `--publish` away from uploading artifacts and writing update metadata beside them. This
+# project releases by hand — see docs/release.md — and has no update service, so there is
+# nothing to configure and nothing to leave enabled by accident.
+publish: null
+
+directories:
+  # Not `build/`, which this repository ignores — the icon has to be kept in version control.
+  buildResources: packaging
+  output: release
+
+# An allow-list rather than a set of exclusions: nothing can be packaged by accident. Source,
+# tests, fixtures, configuration and documentation are all outside it by construction.
+#
+# The exclusion is the exception that proves it: electron-builder copies everything listed
+# under `dependencies` into the package as well, whatever this list says. Those libraries were
+# bundled into `out/` during the build and nothing loads them from disk, so shipping them
+# again would mean shipping code the application never runs — including development builds of
+# React — for anybody auditing the artifact to wonder about.
+files:
+  - out/**
+  - package.json
+  - LICENSE
+  - '!node_modules/**'
+
+# One archive rather than thousands of loose files. Everything inside is read through Electron
+# normally, which is how the application already resolves its own files.
+asar: true
+
+# There is no native code in this application, so there is nothing to rebuild.
+npmRebuild: false
+
+# Capabilities Electron ships with that this application does not use, burnt out of the
+# packaged binary.
+#
+# Every one of these is a way into the privileged process for somebody who can start the
+# application with an argument or an environment variable of their choosing — which is
+# anybody who can reach the machine it is installed on. The application needs none of them,
+# so they are switched off rather than left available.
+#
+# Two are deliberately left at Electron's defaults, and docs/packaging.md says why at length:
+# `grantFileProtocolExtraPrivileges` is what lets a `file://` URL be read out of the
+# application's own archive — switching it off leaves the window unable to load the interface
+# at all — and `enableCookieEncryption` would encrypt cookies this application never writes.
+electronFuses:
+  # This is a desktop application and never a general-purpose Node runtime: neither
+  # `ELECTRON_RUN_AS_NODE` nor `NODE_OPTIONS` nor `--inspect` does anything to it any more.
+  # The last of those is also how this project used to drive the packaged application when
+  # verifying it, so that verification now runs through the interface instead.
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  # What runs is what was packaged. The archive is checked against a hash recorded in the
+  # bundle, and an `app` directory placed beside it is not loaded in its place. Electron
+  # implements the check on macOS and Windows; elsewhere the fuse is inert rather than
+  # harmful.
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  # Flipping a fuse rewrites bytes inside the Electron binary, which invalidates the
+  # signature it ships with — and macOS on Apple Silicon refuses to start a binary whose
+  # signature does not match, so the application dies immediately. This re-applies an
+  # ad-hoc signature afterwards, which needs no certificate, no keychain and no Apple
+  # account.
+  #
+  # An ad-hoc signature says only "these bytes have not changed since they were signed". It
+  # is not a developer signature and it is not notarisation: macOS still treats the build as
+  # coming from an unidentified developer, exactly as it did before.
+  resetAdHocDarwinSignature: true
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+  category: public.app-category.graphics-design
+  # Not signed, and deliberately so.
+  #
+  # Left unset, electron-builder searches the machine's keychain and signs with whatever
+  # developer certificate it finds there. On a contributor's machine that means building a
+  # public project's artifact with a personal identity — the certificate's name and address
+  # are recorded in the signature — and it means the build reaching into their keychain
+  # without being asked. `null` turns the search off entirely: nothing is signed, and nothing
+  # is looked up.
+  #
+  # Releasing a signed and notarised build is a separate decision, needing an Apple Developer
+  # account and credentials that belong in a release pipeline rather than in this repository.
+  # Until then, see docs/packaging.md for what an unsigned build means for the people who run
+  # it.
+  identity: null
+  artifactName: ${productName}-${version}-macOS-${arch}.${ext}
+  # The application reads themes the person chooses and writes where they say. It asks for
+  # nothing else, so it claims nothing else.
+  extendInfo:
+    NSHumanReadableCopyright: The VitaTheme contributors
+
+dmg:
+  # A window with the application and somewhere to drag it, and nothing else in it.
+  contents:
+    - x: 140
+      y: 180
+      type: file
+    - x: 400
+      y: 180
+      type: link
+      path: /Applications
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  # Not signed, for the same reason the macOS build is not.
+  #
+  # Left unset, electron-builder signs with whatever certificate the environment offers —
+  # `CSC_LINK`, `WIN_CSC_LINK` or a certificate in the machine's store — so a contributor who
+  # happens to have one would sign a public project's artifact with their own identity
+  # without being asked. This says no once, for the application, the installer and the
+  # uninstaller alike. What it means for the people who run it is in docs/packaging.md.
+  signExecutable: false
+  # The application writes only where the person points it and in its own application-data
+  # folder, so it never needs to be run as an administrator and never asks.
+  requestedExecutionLevel: asInvoker
+  artifactName: ${productName}-${version}-Windows-${arch}-Setup.${ext}
+  # Not verified on Windows from this repository yet — see docs/packaging.md.
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  language: '1033'
+  multiLanguageInstaller: false
+  license: license.txt
+  # No start-up entries, no services, no background anything: it is a desktop application.
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  # Uninstalling removes the application, not the person's work. What lives in the
+  # application-data folder is the list of recent projects and any unsaved work waiting to be
+  # recovered, and neither is ours to delete because somebody uninstalled a version.
+  deleteAppDataOnUninstall: false
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  category: Graphics
+  synopsis: Create, check and package PS Vita themes
+  description: Create, edit, preview, validate and export custom PlayStation Vita themes.
+  # Names the desktop entry after `desktopName` in package.json, which is also what Electron
+  # reports as the window's class. Without the two agreeing, a Linux desktop cannot tell that
+  # the window on screen belongs to the application in the menu: it gets a second, nameless
+  # icon in the dock instead.
+  syncDesktopName: true
+  # The same naming as the other platforms, and the architecture always in the name rather
+  # than only when it is not the usual one.
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  # Not verified on Linux from this repository yet — see docs/packaging.md.
