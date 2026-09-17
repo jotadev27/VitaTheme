@@ -1,0 +1,1419 @@
+/* Panels, property lists, tables, controls and dialogs. */
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-large);
+  background: var(--surface-panel);
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--surface-raised) 62%, var(--surface-panel));
+  border-bottom: 1px solid var(--line);
+}
+
+.panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--text);
+}
+
+.panel-note {
+  margin-left: auto;
+  font-size: var(--text-size-small);
+  color: var(--text-dim);
+}
+
+.panel-body {
+  padding: 18px;
+}
+
+.panel-body-flush {
+  padding: 0;
+}
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+/* Property lists ----------------------------------------------------------- */
+
+.props {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) minmax(0, 1fr);
+  gap: 1px 16px;
+  margin: 0;
+}
+
+.prop-label {
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
+.prop-value {
+  margin: 0;
+  padding: 4px 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.unset {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* Values ------------------------------------------------------------------- */
+
+.swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.swatch-chip {
+  width: 13px;
+  height: 13px;
+  border-radius: 2px;
+  border: 1px solid var(--line-strong);
+  /* Alpha is part of a theme colour, so it is shown over a chequerboard, not over black. */
+  background-image:
+    linear-gradient(45deg, #2a2a2a 25%, transparent 25%),
+    linear-gradient(-45deg, #2a2a2a 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #2a2a2a 75%),
+    linear-gradient(-45deg, transparent 75%, #2a2a2a 75%);
+  background-size: 6px 6px;
+  background-position:
+    0 0,
+    0 3px,
+    3px -3px,
+    -3px 0;
+}
+
+.swatch-chip-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.asset-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.asset-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.asset-dot[data-state='present'] {
+  background: var(--severity-ok);
+}
+
+.asset-dot[data-state='missing'] {
+  background: var(--severity-error);
+}
+
+.asset-dot[data-state='unreadable'] {
+  background: var(--severity-warning);
+}
+
+.asset-path {
+  font-family: var(--font-mono);
+  font-size: var(--text-size-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tables ------------------------------------------------------------------- */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  text-align: left;
+  font-size: var(--text-size-small);
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-raised);
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  height: var(--row-height);
+  vertical-align: middle;
+}
+
+.table tbody tr:hover {
+  background: var(--surface-hover);
+}
+
+.table tbody tr[data-highlighted='true'] {
+  background: var(--surface-selected);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.table-align-end {
+  text-align: right;
+}
+
+/* Slot grid ---------------------------------------------------------------- */
+
+.slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border-top: 1px solid var(--line);
+}
+
+.slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: var(--surface-panel);
+  min-width: 0;
+}
+
+.slot[data-themed='false'] .slot-name {
+  color: var(--text-dim);
+}
+
+.slot-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot-value {
+  margin-left: auto;
+  min-width: 0;
+}
+
+/* Controls ----------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 27px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  color: var(--text);
+  cursor: default;
+  white-space: nowrap;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: #3b4855;
+}
+
+.btn:active:not(:disabled) {
+  background: var(--surface-sunken);
+}
+
+.btn:disabled {
+  color: var(--text-dim);
+  background: transparent;
+  border-color: var(--line);
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #3fdcf4;
+  border-color: #3fdcf4;
+}
+
+.btn-primary:disabled {
+  background: var(--surface-raised);
+  border-color: var(--line);
+}
+
+.btn-quiet {
+  border-color: transparent;
+  background: transparent;
+}
+
+.btn-quiet:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--line-strong);
+}
+
+.btn-icon {
+  padding: 0 7px;
+}
+
+.btn-small {
+  min-height: 26px;
+  height: auto;
+  padding: 4px 9px;
+  font-size: var(--text-size-small);
+  line-height: 1.2;
+}
+
+.btn-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: default;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.toggle {
+  height: 22px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-size-small);
+  cursor: default;
+}
+
+.toggle[aria-pressed='true'] {
+  background: var(--surface-selected);
+  border-color: var(--accent-strong);
+  color: var(--text);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 18px;
+  padding: 0 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  font-size: var(--text-size-small);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.badge[data-tone='error'] {
+  border-color: #5e2b2b;
+  background: #2a1717;
+  color: var(--severity-error);
+}
+
+.badge[data-tone='warning'] {
+  border-color: #5b4520;
+  background: #2a2214;
+  color: var(--severity-warning);
+}
+
+.badge[data-tone='ok'] {
+  border-color: #245740;
+  background: #14251d;
+  color: var(--severity-ok);
+}
+
+.count-pill {
+  min-width: 18px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: var(--text-size-small);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  line-height: 17px;
+  background: var(--line);
+  color: var(--text-muted);
+}
+
+.count-pill[data-severity='error'] {
+  background: #3a1f1f;
+  color: var(--severity-error);
+}
+
+.count-pill[data-severity='warning'] {
+  background: #382d15;
+  color: var(--severity-warning);
+}
+
+/* Fields ------------------------------------------------------------------- */
+
+.field {
+  display: grid;
+  gap: 5px;
+}
+
+.field-label {
+  font-size: var(--text-size-small);
+  color: var(--text-muted);
+}
+
+.field-input {
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+  color: var(--text);
+  font: inherit;
+  user-select: text;
+}
+
+.field-input:focus {
+  border-color: var(--accent-strong);
+  outline: none;
+}
+
+.field-hint {
+  font-size: var(--text-size-small);
+  color: var(--text-dim);
+}
+
+/* Welcome ------------------------------------------------------------------ */
+
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 40px;
+  overflow: auto;
+}
+
+.welcome-intro {
+  max-width: 620px;
+  text-align: center;
+  display: grid;
+  gap: 8px;
+}
+
+.welcome-brand {
+  width: min(320px, 72vw);
+  margin: 0 auto 8px;
+  padding: 12px 14px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgb(0 0 0 / 22%);
+}
+
+.welcome-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.welcome-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(210px, 250px));
+  gap: 12px;
+}
+
+.welcome-action {
+  display: grid;
+  gap: 4px;
+  min-height: 88px;
+  padding: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-large);
+  background: var(--surface-panel);
+  text-align: left;
+  cursor: default;
+}
+
+.welcome-action:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent-strong);
+}
+
+.welcome-action-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+}
+
+.welcome-action-hint {
+  font-size: var(--text-size-small);
+  color: var(--text-dim);
+}
+
+.welcome-footnote {
+  max-width: 680px;
+  text-align: center;
+  font-size: var(--text-size-small);
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.welcome-footnote strong {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* Dialogs ------------------------------------------------------------------ */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(6 9 12 / 62%);
+  padding: 40px;
+}
+
+.dialog {
+  width: min(460px, 100%);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-large);
+  background: var(--surface-panel);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 45%);
+  overflow: hidden;
+}
+
+.dialog-head {
+  padding: 14px 16px 0;
+}
+
+.dialog-head h2 {
+  font-size: 15px;
+}
+
+.dialog-body {
+  display: grid;
+  gap: 12px;
+  padding: 12px 16px 16px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.bulk-convert-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+}
+
+.bulk-convert-list {
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bulk-convert-list li {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr);
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: var(--text-size-small);
+}
+
+.dialog-text {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--surface-raised);
+  border-top: 1px solid var(--line);
+}
+
+/* Empty states ------------------------------------------------------------- */
+
+.empty {
+  display: grid;
+  gap: 4px;
+  padding: 22px 12px;
+  text-align: center;
+  color: var(--text-dim);
+}
+
+/* Editing ------------------------------------------------------------------ */
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 20px 24px;
+  align-items: start;
+}
+
+.field-input-narrow {
+  max-width: 120px;
+}
+
+.colour-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The system colour control, reduced to the swatch it is showing. */
+.colour-picker {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+  cursor: default;
+  flex: none;
+}
+
+.colour-picker::-webkit-color-swatch-wrapper {
+  padding: 3px;
+}
+
+.colour-picker::-webkit-color-swatch {
+  border: 0;
+  border-radius: 2px;
+}
+
+.colour-field .field-input {
+  width: 96px;
+  text-transform: uppercase;
+}
+
+.field-input[aria-invalid='true'] {
+  border-color: var(--severity-error);
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+  width: fit-content;
+}
+
+.inline-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 16px;
+}
+
+.inline-form .field-hint {
+  flex: 1 1 260px;
+}
+
+.panel-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.table-inline {
+  margin-bottom: 2px;
+}
+
+.table-inline td {
+  padding: 8px 14px 8px 0;
+}
+
+.table-inline th:first-child,
+.table-inline td:first-child {
+  padding-left: 0;
+  white-space: nowrap;
+}
+
+.translation-code {
+  display: inline-block;
+  min-width: 22px;
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-gutter: stable;
+}
+
+.table-scroll .table-inline {
+  min-width: 680px;
+}
+
+/* Asset slots -------------------------------------------------------------- */
+
+.slot-list {
+  display: grid;
+  gap: 12px;
+}
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+.asset-slot {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-large);
+  background: color-mix(in srgb, var(--surface-sunken) 76%, var(--surface-panel));
+}
+
+.asset-slot:hover {
+  border-color: var(--line-strong);
+}
+
+.asset-slot[data-state='missing'] {
+  border-left: 2px solid var(--severity-error);
+}
+
+.asset-slot[data-state='unreadable'] {
+  border-left: 2px solid var(--severity-warning);
+}
+
+/**
+ * A file being dragged over a slot.
+ *
+ * The slot itself says so — an outline and a word where the file would land — rather than the
+ * application dimming behind a full-window overlay. What is being pointed at is the thing
+ * that should react.
+ */
+.asset-slot[data-dragging] {
+  position: relative;
+}
+
+.asset-slot[data-dragging='welcome'] {
+  border-color: var(--accent);
+  background: var(--surface-selected);
+}
+
+.asset-slot[data-dragging='unwelcome'] {
+  border-color: var(--severity-warning);
+}
+
+.asset-slot-drop {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface-sunken) 82%, transparent);
+  font-size: var(--text-size-small);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  pointer-events: none;
+}
+
+.asset-slot[data-dragging='unwelcome'] .asset-slot-drop {
+  color: var(--severity-warning);
+}
+
+.asset-slot-preview {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 58px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  /* Transparency is part of several theme assets, so it is shown rather than filled in. */
+  background-image:
+    linear-gradient(45deg, #1c1c1c 25%, transparent 25%),
+    linear-gradient(-45deg, #1c1c1c 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1c1c1c 75%),
+    linear-gradient(-45deg, transparent 75%, #1c1c1c 75%);
+  background-size: 8px 8px;
+  background-position:
+    0 0,
+    0 4px,
+    4px -4px,
+    -4px 0;
+  background-color: #111;
+  flex: none;
+}
+
+.asset-slot-compact .asset-slot-preview {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+}
+
+.asset-slot-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.asset-slot-placeholder {
+  color: var(--text-dim);
+  font-size: var(--text-size-small);
+}
+
+.asset-slot-body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.asset-slot-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.asset-slot-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.asset-slot-label {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.asset-slot-details {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.asset-slot-meta {
+  font-size: var(--text-size-small);
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.asset-slot-actions {
+  grid-column: 2;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.asset-slot-footer {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+/* The LiveArea background owns the page artwork card; its thumbnail is a secondary row. */
+.asset-slot-featured {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.asset-slot-featured .asset-slot-preview {
+  width: min(100%, 560px);
+  height: auto;
+  aspect-ratio: 960 / 512;
+  justify-self: start;
+  background: var(--surface-sunken);
+}
+
+.asset-slot-featured .asset-slot-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: auto;
+}
+
+.asset-slot-featured .asset-slot-actions {
+  grid-column: 1;
+}
+
+.page-thumbnail {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.page-thumbnail-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  flex-wrap: wrap;
+}
+
+.page-thumbnail-summary-text {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.page-thumbnail-label {
+  font-weight: 500;
+}
+
+.page-thumbnail-status {
+  color: var(--text-dim);
+  font-size: var(--text-size-small);
+}
+
+.page-thumbnail[data-source='custom'] .page-thumbnail-status {
+  color: var(--accent);
+}
+
+.page-thumbnail-actions,
+.page-thumbnail-detail-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.page-thumbnail-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+}
+
+.page-thumbnail-preview {
+  display: grid;
+  place-items: center;
+  width: 120px;
+  aspect-ratio: 360 / 192;
+  flex: none;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+}
+
+.page-thumbnail-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.page-thumbnail-detail-body {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.page-thumbnail-detail-source {
+  color: var(--text-muted);
+  font-size: var(--text-size-small);
+}
+
+.page-thumbnail-detail-body .asset-path {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.page-thumbnail-detail-actions {
+  margin-top: 6px;
+}
+
+@media (max-width: 540px) {
+  .page-thumbnail-details {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+.asset-slot-compact {
+  grid-template-columns: 60px minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
+  align-items: start;
+  padding: 14px;
+}
+
+.asset-slot-compact .asset-slot-preview,
+.asset-slot-compact .asset-slot-body {
+  grid-row: 1 / span 2;
+}
+
+.asset-slot-compact .asset-slot-meta,
+.asset-slot-compact .asset-path {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  line-height: 1.4;
+}
+
+.asset-slot-compact .asset-slot-actions {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  margin-top: 4px;
+}
+
+.asset-slot-compact .asset-slot-actions .btn {
+  justify-content: center;
+  min-width: 0;
+  white-space: normal;
+  text-align: center;
+}
+
+.asset-slot-compact .asset-action-assign {
+  order: 1;
+}
+
+.asset-slot-compact .asset-action-clear {
+  order: 2;
+}
+
+.asset-slot-compact .asset-action-convert {
+  order: 3;
+  grid-column: 1 / -1;
+}
+
+.asset-slot-compact .asset-slot-actions .btn:only-child {
+  grid-column: 1 / -1;
+}
+
+/* Music is a console choice, not an empty image slot. */
+.music-section {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.music-section h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.music-control {
+  display: grid;
+  gap: 12px;
+}
+
+.music-choices {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.music-choice {
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.music-choice[aria-pressed='true'] {
+  border-color: var(--accent-strong);
+  background: var(--surface-selected);
+  color: var(--text);
+}
+
+.music-choice:disabled {
+  border-style: dashed;
+  color: var(--text-dim);
+  opacity: 0.7;
+}
+
+.music-explanation,
+.music-import-note,
+.music-issue {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.music-import-note {
+  font-size: var(--text-size-small);
+  color: var(--text-dim);
+}
+
+.music-custom {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-large);
+  background: var(--surface-sunken);
+}
+
+.music-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.music-issue[data-severity='error'] {
+  color: var(--severity-error);
+}
+
+.music-issue[data-severity='warning'] {
+  color: var(--severity-warning);
+}
+
+.asset-dot[data-state='empty'] {
+  background: var(--line-strong);
+}
+
+/* LiveArea pages ----------------------------------------------------------- */
+
+.page-tabs {
+  display: flex;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.page-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+  cursor: default;
+}
+
+.page-tab:hover {
+  background: var(--surface-hover);
+}
+
+.page-tab[aria-selected='true'] {
+  background: var(--surface-selected);
+  border-color: var(--accent-strong);
+}
+
+.page-tab-number {
+  font-weight: 600;
+}
+
+.page-editor {
+  display: grid;
+  gap: 20px;
+}
+
+/**
+ * Converting a picture: what you have, what the slot takes, and how to fit one into the
+ * other. Two rows and a short list of choices — the dialog is a question, not a workspace.
+ */
+.dialog-wide {
+  max-width: 560px;
+}
+
+.convert-compare {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 20px;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.convert-compare dt {
+  font-size: var(--text-size-small);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.convert-compare dd {
+  margin: 0;
+  font-size: 13px;
+}
+
+.convert-fits {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+}
+
+.convert-fits-legend {
+  padding: 0 0 8px;
+  font-size: var(--text-size-small);
+  color: var(--text-dim);
+}
+
+.convert-fit {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 2px 10px;
+  padding: 7px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.convert-fit:hover {
+  background: var(--surface-hover);
+}
+
+.convert-fit input {
+  grid-row: span 2;
+  align-self: center;
+  accent-color: var(--accent);
+}
+
+.convert-fit-hint {
+  grid-column: 2;
+  font-size: var(--text-size-small);
+  color: var(--text-dim);
+}
+
+/**
+ * The projects somebody was working on, on the way in.
+ *
+ * Rows rather than cards: a launcher is a list of things to continue, and the name is what
+ * somebody is looking for. One that is no longer where it was stays on the list, dimmed and
+ * labelled, because a project that moved is not a project that should quietly disappear.
+ */
+.recents {
+  width: 100%;
+  max-width: 560px;
+  margin: 28px auto 0;
+  text-align: left;
+}
+
+.recents-title {
+  margin: 0 0 10px;
+  font-size: var(--text-size-small);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.recents-empty {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.recents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recent {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border-radius: var(--radius);
+}
+
+.recent:hover {
+  background: var(--surface-raised);
+}
+
+.recent-open {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.recent-open:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.recent-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.recent-folder {
+  font-size: var(--text-size-small);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.recent[data-available='false'] .recent-name {
+  color: var(--text-dim);
+  text-decoration: line-through;
+  text-decoration-color: var(--line-strong);
+}
+
+.recent[data-available='false'] .recent-folder {
+  color: var(--severity-warning);
+}
+
+.recent-forget {
+  margin-right: 6px;
+  opacity: 0;
+}
+
+.recent:hover .recent-forget,
+.recent-forget:focus-visible {
+  opacity: 1;
+}
+
+/*
+ * A slot the theme leaves alone.
+ *
+ * The mark drawn here stands for the icon the console supplies, so it is deliberately
+ * quieter than real artwork: dimmed, and without the chequerboard behind it, because there
+ * is no file to show the transparency of.
+ */
+.asset-slot-default {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 3px;
+  color: var(--text-dim);
+  background: var(--surface-raised);
+}
+
+.system-icon-plate {
+  stroke: var(--line-strong);
+}
+
+/* Which of the two a slot is showing, said once rather than inferred from the picture. */
+.asset-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-size-small);
+  color: var(--text-dim);
+}
+
+.asset-source::before {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+}
+
+.asset-source[data-source='custom'] {
+  color: var(--accent);
+}
+
+/* A picture VitaTheme drew: stated plainly, and quieter than one somebody chose. */
+.asset-source[data-source='generated'] {
+  color: var(--text-muted);
+}
+
+.panel-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+/* The panel note sits to the right; with actions there too, the note gives up the margin. */
+.panel-actions ~ .panel-note,
+.panel-note:has(~ .panel-actions) {
+  margin-left: 0;
+}
+
+.panel-lead {
+  margin: 0 0 16px;
+  font-size: var(--text-size-small);
+  color: var(--text-dim);
+  max-width: 72ch;
+  line-height: 1.5;
+}
+
+@media (max-width: 1180px) {
+  .welcome-actions {
+    grid-template-columns: repeat(2, minmax(220px, 280px));
+  }
+
+  .panel-head {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .panel-actions {
+    margin-left: auto;
+  }
+}

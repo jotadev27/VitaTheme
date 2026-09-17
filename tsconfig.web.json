@@ -1,0 +1,16 @@
+{
+  // The window: a browser, and only a browser. No Node types, so renderer code cannot use a
+  // Node API even if the bundler would have let it through.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"]
+  },
+  "include": [
+    "src/presentation/**/*.ts",
+    "src/presentation/**/*.tsx",
+    "src/ipc/**/*.ts",
+    "src/domain/**/*.ts",
+    "tests/presentation/**/*.tsx"
+  ]
+}

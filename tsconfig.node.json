@@ -1,0 +1,20 @@
+{
+  // The processes that run on Node: the format layer, the Electron main process and the
+  // bridge. No DOM: nothing here may reach for a browser API by accident.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "jsx": "preserve"
+  },
+  "include": [
+    "src/domain/**/*.ts",
+    "src/application/**/*.ts",
+    "src/infrastructure/**/*.ts",
+    "src/ipc/**/*.ts",
+    "src/main/**/*.ts",
+    "src/preload/**/*.ts",
+    "tests/**/*.ts",
+    "*.config.ts"
+  ]
+}

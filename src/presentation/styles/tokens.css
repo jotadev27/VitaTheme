@@ -1,0 +1,48 @@
+/*
+ * The interface's palette and measurements.
+ *
+ * Dark, low-saturation neutrals so that a theme's own artwork is the only colourful thing on
+ * screen, with one accent — the cyan PS Vita themes use for their own highlights — kept for
+ * selection, focus and the single primary action. Severity colours are the exception: they
+ * have to be legible at a glance, because they are the answer to the question this
+ * application exists to answer.
+ */
+:root {
+  --surface-window: #0f1317;
+  --surface-panel: #151a21;
+  --surface-raised: #1a2129;
+  --surface-sunken: #0c1014;
+  --surface-hover: #1f2831;
+  --surface-selected: #16303a;
+
+  --line: #222b35;
+  --line-strong: #2d3945;
+
+  --text: #e2e8ef;
+  --text-muted: #94a3b4;
+  --text-dim: #6a7887;
+
+  --accent: #22d3ee;
+  --accent-strong: #0b8ba8;
+  --accent-text: #041014;
+
+  --severity-error: #ff6f6f;
+  --severity-warning: #f2b33d;
+  --severity-ok: #4ad295;
+
+  --radius: 6px;
+  --radius-large: 10px;
+
+  --row-height: 26px;
+  --toolbar-height: 48px;
+  --status-height: 30px;
+  --rail-width: 212px;
+  --dock-width: 360px;
+
+  --font-ui:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  --text-size: 13px;
+  --text-size-small: 11.5px;
+}

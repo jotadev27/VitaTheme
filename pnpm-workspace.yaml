@@ -1,0 +1,10 @@
+# Package build scripts are opt-in. esbuild ships a platform-specific binary that Vitest
+# needs, and Electron downloads the desktop runtime the application is launched with.
+#
+# `electron-winstaller` arrives with electron-builder and fetches Squirrel.Windows, an
+# installer format this project does not use — VitaTheme builds an NSIS installer instead.
+# Its install script is deliberately not run.
+allowBuilds:
+  esbuild: true
+  electron: true
+  electron-winstaller: false
