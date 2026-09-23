@@ -5,10 +5,9 @@ import type { ThemeSnapshot, VitaThemeBridge } from '@/ipc';
 import { AppToolbar } from './components/AppToolbar';
 import { AssetPreviews } from './components/asset-previews';
 import { ConfirmReplacementDialog } from './components/ConfirmReplacementDialog';
-import { CloseIcon } from './components/icons';
+import { NoticeToast } from './components/NoticeToast';
 import { NavigatorRail, PreviewRail } from './components/NavigatorRail';
 import { ConvertAssetDialog } from './components/ConvertAssetDialog';
-import { BulkConvertDialog } from './components/BulkConvertDialog';
 import { NewThemeDialog } from './components/NewThemeDialog';
 import { RecoveryDialog } from './components/RecoveryDialog';
 import { StatusBar } from './components/StatusBar';
@@ -17,6 +16,7 @@ import { WelcomeView } from './components/WelcomeView';
 import { PreviewStage } from './preview/PreviewStage';
 import { SectionView } from './sections/SectionView';
 import { useEditor } from './state/use-editor';
+import { assetSlotLabel } from './state/asset-slot-label';
 
 /**
  * VitaTheme.
@@ -37,10 +37,25 @@ const mediaInSlot = (theme: ThemeSnapshot | null, slot: ThemeAssetSlot): MediaDe
   return summary?.lookup.status === 'found' ? summary.lookup.asset.media : null;
 };
 
+const cropSourceInSlot = (theme: ThemeSnapshot, slot: ThemeAssetSlot) => {
+  const media = mediaInSlot(theme, slot);
+  if (media?.kind !== 'image') return null;
+  const path = assetAtSlot(theme.project, slot);
+  return {
+    width: media.width,
+    height: media.height,
+    ...(path === null ? {} : { path }),
+  };
+};
+
 export const App = ({ bridge }: { readonly bridge: VitaThemeBridge }): ReactElement => {
   const { state, actions } = useEditor(bridge);
   const [validationOpen, setValidationOpen] = useState(false);
   const theme = state.session.theme;
+  const existingCropSource =
+    theme !== null && state.dialog?.kind === 'convert-asset'
+      ? cropSourceInSlot(theme, state.dialog.slot)
+      : null;
 
   const totalBytes =
     theme?.assets.reduce(
@@ -106,10 +121,7 @@ export const App = ({ bridge }: { readonly bridge: VitaThemeBridge }): ReactElem
                 assets={theme.assets}
                 theme={theme}
                 onConvert={(slot) => {
-                  actions.beginConversion(slot, slot.kind.replace(/([A-Z])/g, ' $1'));
-                }}
-                onConvertAll={() => {
-                  actions.openDialog({ kind: 'convert-images' });
+                  actions.beginConversion(slot, assetSlotLabel(slot));
                 }}
                 onClose={() => {
                   setValidationOpen(false);
@@ -140,19 +152,7 @@ export const App = ({ bridge }: { readonly bridge: VitaThemeBridge }): ReactElem
       />
 
       {state.notice === null ? null : (
-        <div className="notice-layer">
-          <div className="notice" data-tone={state.notice.tone} role="status">
-            <span className="notice-message">{state.notice.message}</span>
-            <button
-              type="button"
-              className="btn btn-quiet btn-small"
-              onClick={actions.dismissNotice}
-              aria-label="Dismiss"
-            >
-              <CloseIcon />
-            </button>
-          </div>
-        </div>
+        <NoticeToast key={state.noticeId} notice={state.notice} onDismiss={actions.dismissNotice} />
       )}
 
       {state.session.recovery === null ? null : (
@@ -176,27 +176,42 @@ export const App = ({ bridge }: { readonly bridge: VitaThemeBridge }): ReactElem
         />
       )}
 
-      {state.dialog?.kind === 'convert-asset' && (
+      {state.dialog?.kind === 'convert-asset' && existingCropSource !== null && (
         <ConvertAssetDialog
           slot={state.dialog.slot}
           label={state.dialog.label}
-          media={mediaInSlot(theme, state.dialog.slot)}
+          source={existingCropSource}
           busy={state.pending === 'converting'}
           onCancel={actions.closeDialog}
-          onConvert={(fit) => {
+          loadSource={actions.previewCropSource}
+          onApply={(crop) => {
             if (state.dialog?.kind === 'convert-asset') {
-              void actions.convertAsset(state.dialog.slot, fit);
+              void actions.convertAsset(state.dialog.slot, crop);
             }
           }}
         />
       )}
 
-      {state.dialog?.kind === 'convert-images' && theme !== null && (
-        <BulkConvertDialog
-          theme={theme}
+      {state.dialog?.kind === 'crop-selected' && (
+        <ConvertAssetDialog
+          slot={state.dialog.slot}
+          label={state.dialog.label}
+          source={{
+            width: state.dialog.width,
+            height: state.dialog.height,
+            dataUrl: state.dialog.dataUrl,
+          }}
           busy={state.pending === 'converting'}
-          onCancel={actions.closeDialog}
-          onConvert={(fit) => void actions.convertIncompatibleImages(fit)}
+          loadSource={actions.previewAsset}
+          onCancel={() => {
+            if (state.dialog?.kind === 'crop-selected')
+              actions.cancelSelectedAsset(state.dialog.token);
+            actions.closeDialog();
+          }}
+          onApply={(crop) => {
+            if (state.dialog?.kind === 'crop-selected')
+              void actions.applySelectedCrop(state.dialog.token, crop);
+          }}
         />
       )}
 

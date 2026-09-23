@@ -360,17 +360,9 @@ export const HomeSection = ({
         <div className="bulk-convert-prompt">
           <span>
             {String(incompatible)} image{incompatible === 1 ? '' : 's'} across the theme can be
-            converted to the required PNG format.
+            converted to the required PNG format. Use Convert to PNG in each asset slot to position
+            it.
           </span>
-          <button
-            type="button"
-            className="btn btn-small"
-            onClick={() => {
-              actions.openDialog({ kind: 'convert-images' });
-            }}
-          >
-            Convert incompatible images…
-          </button>
         </div>
       ) : null}
 

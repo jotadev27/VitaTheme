@@ -1,4 +1,5 @@
 import type { ImageConversionTarget, ImageFit } from '../../domain/editing/image-conversion';
+import type { ImageCrop } from '../../domain/editing/image-crop';
 import type { RasterComposition } from '../../domain/editing/preview-composition';
 import type { InspectedAsset } from '../../domain/model/media';
 import type { Result } from '../../domain/shared/result';
@@ -76,6 +77,7 @@ export interface ImageConverter {
     source: Uint8Array,
     target: ImageConversionTarget,
     fit: ImageFit,
+    crop?: ImageCrop,
   ): Promise<Result<ConvertedImage, ImageConversionError>>;
 
   /**

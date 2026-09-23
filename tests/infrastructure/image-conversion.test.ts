@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { Jimp } from 'jimp';
 import { MAX_SOURCE_PIXELS, MAX_SOURCE_SIDE } from '@/application/ports/image-converter';
 import { imageConversionTarget } from '@/domain/editing/image-conversion';
 import { imageAssetSpec } from '@/domain/vita/asset-specs';
@@ -118,6 +119,79 @@ describe('reading what was given', () => {
 });
 
 describe('making a picture the right shape', () => {
+  it('exports a circular page indicator with transparent corners and no dark edge', async () => {
+    const source = await new Jimp({ width: 128, height: 128, color: 0xe83b31ff }).getBuffer(
+      'image/png',
+    );
+    const result = await convertImage(source, imageConversionTarget('pageIndicator'), 'cover', {
+      zoom: 1,
+      x: 0,
+      y: 0,
+      shape: 'circle',
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const pixels = await pixelsOf(result.value.bytes);
+    expect(pixels.at(0, 0)[3]).toBe(0);
+    expect(pixels.at(11, 11).slice(0, 4)).toEqual([232, 59, 49, 255]);
+    const edge = Array.from({ length: 22 }, (_, x) => pixels.at(x, 0)).find(
+      (pixel) => (pixel[3] ?? 0) > 0 && (pixel[3] ?? 0) < 255,
+    );
+    expect(edge).toBeDefined();
+    expect(edge?.slice(0, 3)).toEqual([232, 59, 49]);
+    expect(result.value.inspected.media).toMatchObject({ width: 22, height: 22 });
+  });
+
+  it.each(['appIcon', 'notificationBadge'] as const)(
+    'does not add a circular crop to %s',
+    async (kind) => {
+      const source = await pngBytes({ width: 128, height: 128 });
+      const result = await convertImage(source, imageConversionTarget(kind), 'cover', {
+        zoom: 1,
+        x: 0,
+        y: 0,
+        shape: 'circle',
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error.message).toContain('only available for page indicators');
+    },
+  );
+
+  it('exports a positioned crop deterministically', async () => {
+    const source = await pngBytes({ width: 400, height: 200, gradient: true });
+    const target = imageConversionTarget('appIcon');
+    const crop = { zoom: 1.6, x: 0.7, y: -0.3 };
+    const first = await convertImage(source, target, 'cover', crop);
+    const second = await convertImage(source, target, 'cover', crop);
+    expect(first.ok && second.ok).toBe(true);
+    if (!first.ok || !second.ok) return;
+    expect(first.value.bytes).toEqual(second.value.bytes);
+    const centred = await convertImage(source, target, 'cover', { zoom: 1.6, x: 0, y: 0 });
+    expect(centred.ok).toBe(true);
+    if (centred.ok) expect(first.value.bytes).not.toEqual(centred.value.bytes);
+  });
+
+  it('fills a notification badge with no letterbox pixels', async () => {
+    const image = new Jimp({ width: 50, height: 250, color: 0xe83b31ff });
+    const source = await image.getBuffer('image/png');
+    const result = await convertImage(source, imageConversionTarget('notificationBadge'), 'cover', {
+      zoom: 1,
+      x: 0,
+      y: 0,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const pixels = await pixelsOf(result.value.bytes);
+    for (const [x, y] of [
+      [0, 0],
+      [119, 0],
+      [0, 109],
+      [119, 109],
+    ]) {
+      expect(pixels.at(x!, y!).slice(0, 4)).toEqual([232, 59, 49, 255]);
+    }
+  });
+
   it.each([
     ['cover', 'cover'],
     ['contain', 'contain'],

@@ -1,5 +1,6 @@
 import { parentPort } from 'node:worker_threads';
 import type { ImageConversionTarget, ImageFit } from '../../domain/editing/image-conversion';
+import type { ImageCrop } from '../../domain/editing/image-crop';
 import type { RasterComposition } from '../../domain/editing/preview-composition';
 import type { InspectedAsset } from '../../domain/model/media';
 import { composeImage } from './compose-image';
@@ -25,6 +26,7 @@ export type ImageWorkerRequest =
       readonly source: Uint8Array;
       readonly target: ImageConversionTarget;
       readonly fit: ImageFit;
+      readonly crop?: ImageCrop;
     }
   | {
       readonly kind: 'compose';
@@ -48,7 +50,7 @@ if (port !== null) {
   port.on('message', (request: ImageWorkerRequest) => {
     const work =
       request.kind === 'convert'
-        ? convertImage(request.source, request.target, request.fit)
+        ? convertImage(request.source, request.target, request.fit, request.crop)
         : composeImage(request.composition, request.target);
 
     void work.then(

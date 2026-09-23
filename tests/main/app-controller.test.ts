@@ -55,16 +55,40 @@ const fileStoreStub = () => {
   let failure: string | null = null;
 
   return {
-    inspect: () =>
-      Promise.resolve({
-        ok: false as const,
-        error: { code: 'unreadable' as const, message: 'not used here' },
-      }),
-    read: () =>
-      Promise.resolve({
-        ok: false as const,
-        error: { code: 'unreadable' as const, message: 'not used here' },
-      }),
+    inspect: (path: string) =>
+      Promise.resolve(
+        path === CHOSEN_ASSET || path.endsWith('dragged.png')
+          ? {
+              ok: true as const,
+              value: {
+                reference: path,
+                displayName: 'artwork.png',
+                inspected: {
+                  byteSize: 4,
+                  media: {
+                    kind: 'image' as const,
+                    format: 'png' as const,
+                    width: 128,
+                    height: 128,
+                    encoding: null,
+                  },
+                },
+              },
+            }
+          : {
+              ok: false as const,
+              error: { code: 'unreadable' as const, message: 'not used here' },
+            },
+      ),
+    read: (path: string) =>
+      Promise.resolve(
+        path === CHOSEN_ASSET || path.endsWith('dragged.png')
+          ? { ok: true as const, value: Uint8Array.from([1, 2, 3, 4]) }
+          : {
+              ok: false as const,
+              error: { code: 'unreadable' as const, message: 'not used here' },
+            },
+      ),
     listFolder: (path: string) => {
       listedFolders.push(path);
       return Promise.resolve(
@@ -126,6 +150,7 @@ interface SessionStub extends ThemeSession {
   readonly edits: ThemeEdit[];
   readonly historyCalls: ('undo' | 'redo')[];
   readonly assignments: { slot: ThemeAssetSlot; location: string }[];
+  readonly croppedAssignments: { slot: ThemeAssetSlot; source: Uint8Array }[];
   /** Every set of files handed over at once, so a test can see it was one call. */
   readonly bulkAssignments: { slot: ThemeAssetSlot; displayName: string }[][];
   readonly conversions: { slot: ThemeAssetSlot; fit: string }[];
@@ -166,6 +191,7 @@ const sessionStub = (): SessionStub => {
     edits: [],
     historyCalls: [],
     assignments: [],
+    croppedAssignments: [],
     conversions: [],
     previewRequests: [],
     conversionFailure: null,
@@ -301,6 +327,16 @@ const sessionStub = (): SessionStub => {
             }
           : { ok: true as const, value: stub.loaded },
       );
+    },
+    assignCroppedAsset: (slot, source) => {
+      if (stub.assignFailure !== null) {
+        return Promise.resolve({
+          ok: false as const,
+          error: { code: 'unreadable' as const, message: stub.assignFailure },
+        });
+      }
+      stub.croppedAssignments.push({ slot, source });
+      return Promise.resolve({ ok: true as const, value: stub.loaded! });
     },
     generatePreviews: (kinds) => {
       stub.previewRequests.push([...kinds]);
@@ -732,11 +768,17 @@ describe('changing a theme', () => {
 describe('bringing a file into a theme', () => {
   const slot = { kind: 'appIcon', application: 'browser' } as const;
 
-  it('asks for a file and hands what was chosen to the session', async () => {
+  it('shows a chosen file for cropping, then commits it as one change', async () => {
     const result = await controller.assignAsset(slot);
 
-    expect(result).toEqual({ status: 'assigned' });
-    expect(session.assignments).toEqual([{ slot, location: CHOSEN_ASSET }]);
+    expect(result).toMatchObject({ status: 'selected', width: 128, height: 128 });
+    if (result.status !== 'selected') return;
+    expect(result.dataUrl).toMatch(/^data:image\/png;base64,/);
+    expect(session.assignments).toEqual([]);
+    expect(
+      await controller.applySelectedCrop({ token: result.token, crop: { zoom: 1, x: 0, y: 0 } }),
+    ).toEqual({ status: 'assigned' });
+    expect(session.croppedAssignments).toEqual([{ slot, source: Uint8Array.from([1, 2, 3, 4]) }]);
   });
 
   it('is cancelled, not failed, when nobody chose a file', async () => {
@@ -744,6 +786,20 @@ describe('bringing a file into a theme', () => {
 
     expect(await controller.assignAsset(slot)).toEqual({ status: 'cancelled' });
     expect(session.assignments).toEqual([]);
+    expect(session.croppedAssignments).toEqual([]);
+  });
+
+  it('leaves the theme untouched when the crop is cancelled', async () => {
+    const selected = await controller.assignAsset(slot);
+    expect(selected.status).toBe('selected');
+    if (selected.status !== 'selected') return;
+    controller.cancelSelectedAsset(selected.token);
+    expect(session.assignments).toEqual([]);
+    expect(published).toHaveLength(0);
+    expect(
+      (await controller.applySelectedCrop({ token: selected.token, crop: { zoom: 1, x: 0, y: 0 } }))
+        .status,
+    ).toBe('rejected');
   });
 
   it('does not even open a dialog when there is no theme to put a file in', async () => {
@@ -1367,12 +1423,21 @@ describe('a file dragged onto a slot', () => {
   it('goes into the slot the same way a chosen file does', async () => {
     const result = await controller.assignDroppedAsset(SLOT, DROPPED);
 
-    expect(result).toEqual({ status: 'assigned' });
-    expect(session.assignments).toEqual([{ slot: SLOT, location: DROPPED }]);
+    expect(result.status).toBe('selected');
+    if (result.status !== 'selected') return;
+    expect(
+      await controller.applySelectedCrop({ token: result.token, crop: { zoom: 1, x: 0, y: 0 } }),
+    ).toEqual({ status: 'assigned' });
+    expect(session.croppedAssignments).toEqual([
+      { slot: SLOT, source: Uint8Array.from([1, 2, 3, 4]) },
+    ]);
   });
 
   it('tells the window the theme changed', async () => {
-    await controller.assignDroppedAsset(SLOT, DROPPED);
+    const selected = await controller.assignDroppedAsset(SLOT, DROPPED);
+    expect(published).toHaveLength(0);
+    if (selected.status !== 'selected') return;
+    await controller.applySelectedCrop({ token: selected.token, crop: { zoom: 1, x: 0, y: 0 } });
 
     expect(published).toHaveLength(1);
   });
@@ -1396,7 +1461,12 @@ describe('a file dragged onto a slot', () => {
   it('passes on what the session said when the file cannot be used', async () => {
     session.assignFailure = 'That file is larger than a theme can hold.';
 
-    const result = await controller.assignDroppedAsset(SLOT, DROPPED);
+    const selected = await controller.assignDroppedAsset(SLOT, DROPPED);
+    if (selected.status !== 'selected') return;
+    const result = await controller.applySelectedCrop({
+      token: selected.token,
+      crop: { zoom: 1, x: 0, y: 0 },
+    });
 
     expect(result).toEqual({
       status: 'rejected',

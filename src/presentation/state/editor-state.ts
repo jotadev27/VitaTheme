@@ -34,7 +34,15 @@ export type EditorDialog =
   | { readonly kind: 'new-theme' }
   /** Turning what is in a slot into a picture the theme can use. */
   | { readonly kind: 'convert-asset'; readonly slot: ThemeAssetSlot; readonly label: string }
-  | { readonly kind: 'convert-images' }
+  | {
+      readonly kind: 'crop-selected';
+      readonly slot: ThemeAssetSlot;
+      readonly label: string;
+      readonly token: string;
+      readonly dataUrl: string;
+      readonly width: number;
+      readonly height: number;
+    }
   /** Something is already where the theme would be written; exporting again replaces it. */
   | { readonly kind: 'confirm-replacement'; readonly name: string; readonly format: ExportFormat };
 
@@ -59,6 +67,7 @@ export interface EditorState {
   readonly pending: PendingAction;
   readonly dialog: EditorDialog | null;
   readonly notice: Notice | null;
+  readonly noticeId: number;
   /** The asset a reported problem pointed at, highlighted until something else is chosen. */
   readonly highlightedAsset: string | null;
 }
@@ -73,6 +82,7 @@ export const initialEditorState: EditorState = {
   pending: null,
   dialog: null,
   notice: null,
+  noticeId: 0,
   highlightedAsset: null,
 };
 
@@ -147,7 +157,7 @@ export const editorReducer = (state: EditorState, action: EditorAction): EditorS
       return { ...state, dialog: null };
 
     case 'notice-shown':
-      return { ...state, notice: action.notice };
+      return { ...state, notice: action.notice, noticeId: state.noticeId + 1 };
 
     case 'notice-dismissed':
       return { ...state, notice: null };

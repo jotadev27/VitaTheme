@@ -1,4 +1,5 @@
 import { IMAGE_FITS, type ImageFit } from '../../domain/editing/image-conversion';
+import { MAX_IMAGE_ZOOM, type ImageCrop } from '../../domain/editing/image-crop';
 import type { ThemeAssetSlot } from '../../domain/editing/theme-asset-slot';
 import type { LocalizedField, ThemeColorSlot, ThemeEdit } from '../../domain/editing/theme-edit';
 import { parseThemeAssetPath, type ThemeAssetPath } from '../../domain/model/theme-asset-path';
@@ -12,6 +13,7 @@ import {
 } from '../../domain/vita/theme-previews';
 import type {
   ConvertAssetRequest,
+  SelectedCropRequest,
   BulkImageConversionRequest,
   DroppedAssetRequest,
   ExportFormat,
@@ -216,9 +218,43 @@ export const parseConvertAssetRequest = (value: unknown): Result<ConvertAssetReq
   }
 
   const fit = request?.fit;
+  const crop = request?.crop === undefined ? undefined : parseImageCrop(request.crop);
+  if (crop === null) return failure('That image position or zoom is invalid.');
   return typeof fit === 'string' && IMAGE_FITS.includes(fit as ImageFit)
-    ? success({ slot: slot.value, fit: fit as ImageFit })
+    ? success({ slot: slot.value, fit: fit as ImageFit, ...(crop === undefined ? {} : { crop }) })
     : failure('That is not a way of fitting a picture into a slot.');
+};
+
+const parseImageCrop = (value: unknown): ImageCrop | null => {
+  const crop = asRecord(value);
+  const zoom = crop?.zoom;
+  const x = crop?.x;
+  const y = crop?.y;
+  const shape = crop?.shape;
+  return typeof zoom === 'number' &&
+    Number.isFinite(zoom) &&
+    zoom >= 1 &&
+    zoom <= MAX_IMAGE_ZOOM &&
+    typeof x === 'number' &&
+    Number.isFinite(x) &&
+    x >= -1 &&
+    x <= 1 &&
+    typeof y === 'number' &&
+    Number.isFinite(y) &&
+    y >= -1 &&
+    y <= 1 &&
+    (shape === undefined || shape === 'square' || shape === 'circle')
+    ? { zoom, x, y, ...(shape === undefined ? {} : { shape }) }
+    : null;
+};
+
+export const parseSelectedCropRequest = (value: unknown): Result<SelectedCropRequest, string> => {
+  const request = asRecord(value);
+  const token = request?.token;
+  const crop = parseImageCrop(request?.crop);
+  return typeof token === 'string' && /^[a-f0-9-]{36}$/.test(token) && crop !== null
+    ? success({ token, crop })
+    : failure('That selected image or crop is invalid.');
 };
 
 export const parseBulkImageConversionRequest = (

@@ -1,149 +1,265 @@
-import { useState, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import {
-  DEFAULT_IMAGE_FIT,
-  imageConversionTarget,
-  type ImageFit,
-} from '@/domain/editing/image-conversion';
+  dragImageCrop,
+  imageCropPlacement,
+  MAX_IMAGE_ZOOM,
+  RESET_IMAGE_CROP,
+  type ImageCrop,
+} from '@/domain/editing/image-crop';
+import { imageConversionTarget } from '@/domain/editing/image-conversion';
 import { assetSlotUsage, type ThemeAssetSlot } from '@/domain/editing/theme-asset-slot';
-import type { ImageColorModel, MediaDescriptor } from '@/domain/model/media';
-import { imageAssetSpec } from '@/domain/vita/asset-specs';
 import { formatPixels } from '../format';
 
-/**
- * Turning a picture into one the theme can use.
- *
- * Written for somebody who has a picture they like, not for somebody who knows what a colour
- * type is: what they have, what the theme needs, and what converting will do to it, in that
- * order. The technical words are still there — an author who knows them should see them —
- * but nothing depends on understanding them.
- */
+export interface CropSource {
+  readonly width: number;
+  readonly height: number;
+  readonly dataUrl?: string;
+  readonly path?: string;
+}
 
-const COLOR_MODELS: Readonly<Record<ImageColorModel, string>> = {
-  indexed: 'a palette of up to 256 colours',
-  'truecolor-alpha': 'full colour with transparency',
-  truecolor: 'full colour',
-  'grayscale-alpha': 'grey with transparency',
-  grayscale: 'grey',
-};
-
-const FIT_CHOICES: readonly {
-  readonly fit: ImageFit;
-  readonly label: string;
-  readonly hint: string;
-}[] = [
-  {
-    fit: 'cover',
-    label: 'Fill the slot',
-    hint: 'Keeps the proportions and crops whatever hangs over the edges.',
-  },
-  {
-    fit: 'contain',
-    label: 'Fit the whole picture',
-    hint: 'Keeps the proportions and fills the rest with black.',
-  },
-  {
-    fit: 'stretch',
-    label: 'Stretch to fit',
-    hint: 'Uses every pixel of the picture, and distorts it to the required shape.',
-  },
-];
-
-const describeSource = (media: MediaDescriptor | null): string => {
-  if (media?.kind !== 'image') {
-    return 'This file is not a picture this application can read.';
-  }
-
-  const encoding = media.encoding === null ? null : COLOR_MODELS[media.encoding.colorModel];
-
-  return `${media.format.toUpperCase()}, ${formatPixels(media.width, media.height)}${
-    encoding === null ? '' : `, ${encoding}`
-  }`;
-};
-
+/** The viewport uses the same cover, displacement and rounding calculations as export. */
 export const ConvertAssetDialog = ({
   slot,
   label,
-  media,
+  source,
   busy,
   onCancel,
-  onConvert,
+  onApply,
+  loadSource,
 }: {
   readonly slot: ThemeAssetSlot;
   readonly label: string;
-  readonly media: MediaDescriptor | null;
+  readonly source: CropSource;
   readonly busy: boolean;
   readonly onCancel: () => void;
-  readonly onConvert: (fit: ImageFit) => void;
+  readonly onApply: (crop: ImageCrop) => void;
+  readonly loadSource: (path: string) => Promise<string | null>;
 }): ReactElement => {
-  const [fit, setFit] = useState<ImageFit>(DEFAULT_IMAGE_FIT);
+  const [crop, setCrop] = useState<ImageCrop>(RESET_IMAGE_CROP);
+  const [shape, setShape] = useState<'square' | 'circle'>('square');
+  const [dataUrl, setDataUrl] = useState<string | null>(source.dataUrl ?? null);
+  const [size, setSize] = useState({ width: 1, height: 1 });
+  const viewport = useRef<HTMLDivElement>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+  const lastPointer = useRef<{ x: number; y: number } | null>(null);
   const usage = assetSlotUsage(slot);
-  const spec = usage === 'backgroundMusic' ? null : imageAssetSpec(usage);
   const target = usage === 'backgroundMusic' ? null : imageConversionTarget(usage);
+  const canBeCircle = target?.allowsCircle ?? false;
+  const zoomPercent = Math.round(((crop.zoom - 1) / (MAX_IMAGE_ZOOM - 1)) * 100);
 
-  const sameShape =
-    media?.kind === 'image' && target !== null
-      ? media.width === target.width && media.height === target.height
-      : false;
+  useEffect(() => {
+    dialog.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (source.path === undefined) return;
+    let current = true;
+    void loadSource(source.path).then((url) => {
+      if (current) setDataUrl(url);
+    });
+    return () => {
+      current = false;
+    };
+  }, [source.path, loadSource]);
+
+  useEffect(() => {
+    const element = viewport.current;
+    if (element === null) return;
+    const observer = new ResizeObserver(() => {
+      const rect = element.getBoundingClientRect();
+      setSize({ width: rect.width, height: rect.height });
+    });
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  const place =
+    target === null
+      ? null
+      : imageCropPlacement(source.width, source.height, target.width, target.height, crop);
+  const scale = target === null ? 1 : size.width / target.width;
+  const move = (dx: number, dy: number): void => {
+    if (target === null) return;
+    setCrop((previous) =>
+      dragImageCrop(
+        previous,
+        dx,
+        dy,
+        size.width,
+        size.height,
+        source.width,
+        source.height,
+        target.width,
+        target.height,
+      ),
+    );
+  };
 
   return (
     <div
       className="scrim"
       role="presentation"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !busy) {
-          onCancel();
-        }
+        if (event.target === event.currentTarget && !busy) onCancel();
       }}
     >
-      <div className="dialog dialog-wide" role="dialog" aria-labelledby="convert-title" aria-modal>
+      <div
+        ref={dialog}
+        className="dialog crop-dialog"
+        role="dialog"
+        aria-labelledby="crop-title"
+        aria-modal
+        tabIndex={-1}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape' && !busy) {
+            event.stopPropagation();
+            onCancel();
+          }
+        }}
+      >
         <div className="dialog-head">
-          <h2 id="convert-title">Convert “{label}”</h2>
+          <h2 id="crop-title">Position “{label}”</h2>
         </div>
-
-        <div className="dialog-body">
-          <dl className="convert-compare">
-            <dt>What you have</dt>
-            <dd>{describeSource(media)}</dd>
-            <dt>What this slot takes</dt>
-            <dd>
-              {target === null || spec === null
-                ? 'A sound file, which cannot be converted here.'
-                : `PNG, ${formatPixels(target.width, target.height)}, ${COLOR_MODELS[target.colorModel]}`}
-            </dd>
-          </dl>
-
-          {sameShape ? null : (
-            <fieldset className="convert-fits">
-              <legend className="convert-fits-legend">
-                The picture is not this shape. How should it fit?
-              </legend>
-              {FIT_CHOICES.map((choice) => (
-                <label key={choice.fit} className="convert-fit">
-                  <input
-                    type="radio"
-                    name="convert-fit"
-                    value={choice.fit}
-                    checked={fit === choice.fit}
-                    disabled={busy}
-                    onChange={() => {
-                      setFit(choice.fit);
-                    }}
-                  />
-                  <span className="convert-fit-label">{choice.label}</span>
-                  <span className="convert-fit-hint">{choice.hint}</span>
-                </label>
-              ))}
+        <div className="dialog-body crop-body">
+          <p className="dialog-text">
+            Drag the image to choose the area that will appear in the final PNG. The frame has the
+            asset’s exact proportions.
+          </p>
+          <div
+            ref={viewport}
+            className="crop-viewport"
+            data-shape={canBeCircle ? shape : 'square'}
+            role="img"
+            tabIndex={0}
+            aria-label="Image crop preview. Drag to position, or use the arrow keys."
+            style={
+              target === null
+                ? undefined
+                : {
+                    width: `min(100%, ${String(Math.min(680, (400 * target.width) / target.height))}px)`,
+                    aspectRatio: `${String(target.width)} / ${String(target.height)}`,
+                  }
+            }
+            onPointerDown={(event) => {
+              if (dataUrl === null || busy) return;
+              event.currentTarget.setPointerCapture(event.pointerId);
+              lastPointer.current = { x: event.clientX, y: event.clientY };
+            }}
+            onPointerMove={(event) => {
+              const previous = lastPointer.current;
+              if (previous === null) return;
+              move(event.clientX - previous.x, event.clientY - previous.y);
+              lastPointer.current = { x: event.clientX, y: event.clientY };
+            }}
+            onPointerUp={() => {
+              lastPointer.current = null;
+            }}
+            onPointerCancel={() => {
+              lastPointer.current = null;
+            }}
+            onKeyDown={(event) => {
+              const steps: Record<string, readonly [number, number]> = {
+                ArrowLeft: [-10, 0],
+                ArrowRight: [10, 0],
+                ArrowUp: [0, -10],
+                ArrowDown: [0, 10],
+              };
+              const step = steps[event.key];
+              if (step !== undefined) {
+                event.preventDefault();
+                move(step[0], step[1]);
+              }
+            }}
+          >
+            {dataUrl === null || place === null ? (
+              <span className="crop-loading">Loading image…</span>
+            ) : (
+              <div className="crop-image-layer">
+                <img
+                  src={dataUrl}
+                  alt=""
+                  draggable={false}
+                  style={{
+                    width: place.width * scale,
+                    height: place.height * scale,
+                    left: place.left * scale,
+                    top: place.top * scale,
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          {canBeCircle && (
+            <fieldset className="crop-shape">
+              <legend>Shape</legend>
+              <label>
+                <input
+                  type="radio"
+                  name="crop-shape"
+                  checked={shape === 'square'}
+                  disabled={busy}
+                  onChange={() => {
+                    setShape('square');
+                  }}
+                />{' '}
+                Square
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="crop-shape"
+                  checked={shape === 'circle'}
+                  disabled={busy}
+                  onChange={() => {
+                    setShape('circle');
+                  }}
+                />{' '}
+                Circle
+              </label>
             </fieldset>
           )}
-
-          <p className="dialog-text">
+          <div className="crop-controls">
+            <button
+              type="button"
+              className="btn btn-small"
+              disabled={busy}
+              onClick={() => {
+                setCrop(RESET_IMAGE_CROP);
+              }}
+            >
+              Reset
+            </button>
+            <label htmlFor="crop-zoom">Zoom</label>
+            <input
+              id="crop-zoom"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={zoomPercent}
+              disabled={busy || dataUrl === null}
+              onChange={(event) => {
+                setCrop((previous) => ({
+                  ...previous,
+                  zoom: 1 + (Number(event.target.value) / 100) * (MAX_IMAGE_ZOOM - 1),
+                }));
+              }}
+            />
+            <output className="crop-zoom-value" htmlFor="crop-zoom">
+              {zoomPercent}%
+            </output>
+          </div>
+          <p className="field-hint">
+            Exports as{' '}
+            {target === null ? 'PNG' : `${formatPixels(target.width, target.height)} PNG`}.{' '}
             {target?.colorModel === 'indexed'
-              ? 'Converting resizes the picture and reduces its colours to a palette, which is how theme backgrounds are normally stored. Some colours will shift slightly.'
-              : 'Converting resizes the picture and keeps its transparency.'}{' '}
-            The file you chose is not modified, and this is one change you can take back.
+              ? 'Colours are reduced to a palette and may shift slightly. '
+              : ''}
+            The original image is left untouched.
           </p>
         </div>
-
         <div className="dialog-actions">
           <button type="button" className="btn" onClick={onCancel} disabled={busy}>
             Cancel
@@ -151,12 +267,12 @@ export const ConvertAssetDialog = ({
           <button
             type="button"
             className="btn btn-primary"
-            disabled={busy || target === null}
+            disabled={busy || dataUrl === null || target === null}
             onClick={() => {
-              onConvert(fit);
+              onApply({ ...crop, shape: canBeCircle ? shape : 'square' });
             }}
           >
-            {busy ? 'Converting…' : 'Convert'}
+            {busy ? 'Applying…' : 'Apply'}
           </button>
         </div>
       </div>

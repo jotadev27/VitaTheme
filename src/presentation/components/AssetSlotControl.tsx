@@ -94,17 +94,18 @@ export const AssetSlotControl = ({
       ? expectedOf(slot)
       : `${formatPixels(imageAssetSpec(usage).width, imageAssetSpec(usage).height)} PNG when replaced`;
 
-  /**
-   * Offered only when it would do something.
-   *
-   * What the slot needs comes from the format layer, so this asks the same question the
-   * validator is answering elsewhere on the screen rather than deciding one of its own.
-   */
+  /** A valid page indicator can still be reshaped into a circle. */
+  const target = usage === 'backgroundMusic' ? null : imageConversionTarget(usage);
+  const canChooseShape = target?.allowsCircle ?? false;
   const convertible =
-    usage !== 'backgroundMusic' &&
+    target !== null &&
     summary?.lookup.status === 'found' &&
     summary.lookup.asset.media.kind === 'image' &&
-    imageConversionWouldChange(imageConversionTarget(usage), summary.lookup.asset.media);
+    imageConversionWouldChange(target, summary.lookup.asset.media);
+  const editable =
+    summary?.lookup.status === 'found' &&
+    summary.lookup.asset.media.kind === 'image' &&
+    (convertible || canChooseShape);
 
   const [dragging, setDragging] = useState<'welcome' | 'unwelcome' | null>(null);
 
@@ -257,16 +258,20 @@ export const AssetSlotControl = ({
             {generation.busy ? 'Drawing…' : state === 'present' ? 'Regenerate' : 'Generate'}
           </button>
         )}
-        {convertible ? (
+        {editable ? (
           <button
             type="button"
             className="btn btn-small asset-action-convert"
-            title="Make this picture the size and kind this slot needs"
+            title={
+              convertible
+                ? 'Make this picture the size and kind this slot needs'
+                : 'Choose a square or circular page indicator'
+            }
             onClick={() => {
               onConvert(slot, label);
             }}
           >
-            Convert to PNG…
+            {convertible ? 'Convert to PNG…' : 'Edit shape…'}
           </button>
         ) : null}
         {path === null ? null : (

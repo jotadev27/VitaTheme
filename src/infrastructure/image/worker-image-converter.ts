@@ -119,7 +119,15 @@ export const workerImageConverter = ({
     });
 
   return {
-    convert: (source, target, fit) => ask((id) => ({ kind: 'convert', id, source, target, fit })),
+    convert: (source, target, fit, crop) =>
+      ask((id) => ({
+        kind: 'convert',
+        id,
+        source,
+        target,
+        fit,
+        ...(crop === undefined ? {} : { crop }),
+      })),
 
     compose: (composition, target) => ask((id) => ({ kind: 'compose', id, composition, target })),
 

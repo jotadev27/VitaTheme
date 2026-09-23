@@ -1,6 +1,9 @@
 import { basename, dirname, isAbsolute, join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { shell } from 'electron';
 import type { ExternalFileStore } from '../../application/ports/external-file';
+import { MAX_THEME_ASSET_BYTES } from '../../application/ports/theme-assets';
+import { MAX_SOURCE_PIXELS, MAX_SOURCE_SIDE } from '../../application/ports/image-converter';
 import type { ProjectStore, RecoveryLocation } from '../../application/ports/project-store';
 import type {
   RecentProject as StoredRecentProject,
@@ -32,6 +35,7 @@ import { errorsIn } from '../../domain/validation/report';
 import type {
   AssetPreview,
   AssignAssetResult,
+  SelectedCropRequest,
   ConvertAssetRequest,
   ConvertAssetResult,
   BulkImageConversionRequest,
@@ -81,6 +85,8 @@ export interface AppController {
   undo(): Promise<void>;
   redo(): Promise<void>;
   assignAsset(slot: ThemeAssetSlot): Promise<AssignAssetResult>;
+  applySelectedCrop(request: SelectedCropRequest): Promise<AssignAssetResult>;
+  cancelSelectedAsset(token: string): void;
   /** Replaces system icons from a folder of them, as one change. */
   importIconSet(): Promise<IconSetImportResult>;
   convertAsset(request: ConvertAssetRequest): Promise<ConvertAssetResult>;
@@ -93,6 +99,7 @@ export interface AppController {
     request: GeneratePageThumbnailRequest,
   ): Promise<GeneratePageThumbnailResult>;
   previewAsset(path: ThemeAssetPath): Promise<AssetPreview | null>;
+  previewCropSource(path: ThemeAssetPath): Promise<AssetPreview | null>;
   startDraft(request: StartDraftRequest): Promise<ThemeLoadResult>;
   openThemeFolder(): Promise<ThemeLoadResult>;
   openProject(): Promise<ThemeLoadResult>;
@@ -187,6 +194,13 @@ export const createAppController = ({
   let lastExportPath: string | null = null;
   /** An export that stopped because something was already there, waiting for consent. */
   let pendingReplacement: ExportDestination | null = null;
+  /** A chosen file stays privileged and does not enter the project until Apply. */
+  let selectedImage: {
+    readonly token: string;
+    readonly slot: ThemeAssetSlot;
+    readonly bytes: Uint8Array;
+    readonly revision: number;
+  } | null = null;
   /**
    * Work an interrupted session left behind. The offer is what the window is shown; the
    * location beside it is how this process finds the document, and never leaves here.
@@ -225,6 +239,43 @@ export const createAppController = ({
 
   const publishSession = (): void => {
     publish(describeSession());
+  };
+
+  const selectImage = async (slot: ThemeAssetSlot, path: string): Promise<AssignAssetResult> => {
+    const theme = session.current();
+    if (theme === null) return { status: 'rejected', message: 'No theme is open.' };
+    const inspected = await externalFiles.inspect(path);
+    if (!inspected.ok) return { status: 'rejected', message: inspected.error.message };
+    const media = inspected.value.inspected.media;
+    if (media.kind !== 'image') {
+      return { status: 'rejected', message: 'Choose a PNG, JPEG, BMP or GIF image.' };
+    }
+    if (
+      media.width <= 0 ||
+      media.height <= 0 ||
+      media.width > MAX_SOURCE_SIDE ||
+      media.height > MAX_SOURCE_SIDE ||
+      media.width * media.height > MAX_SOURCE_PIXELS
+    ) {
+      return {
+        status: 'rejected',
+        message: 'That image is too large to crop safely. Scale it down first.',
+      };
+    }
+    if (inspected.value.inspected.byteSize > MAX_THEME_ASSET_BYTES) {
+      return { status: 'rejected', message: 'This image is too large to show in the crop editor.' };
+    }
+    const read = await externalFiles.read(inspected.value.reference);
+    if (!read.ok) return { status: 'rejected', message: read.error.message };
+    const token = randomUUID();
+    selectedImage = { token, slot, bytes: read.value, revision: theme.revision };
+    return {
+      status: 'selected',
+      token,
+      width: media.width,
+      height: media.height,
+      dataUrl: `data:${IMAGE_MEDIA_TYPES[media.format]};base64,${Buffer.from(read.value).toString('base64')}`,
+    };
   };
 
   const performExport = async (destination: ExportDestination): Promise<ExportResult> => {
@@ -412,6 +463,21 @@ export const createAppController = ({
     }
   };
 
+  const readAssetPreview = async (
+    path: ThemeAssetPath,
+    limit: number,
+  ): Promise<AssetPreview | null> => {
+    const summary = session.current()?.assets.find((asset) => asset.path === path);
+    if (summary?.lookup.status !== 'found') return null;
+    const { media, byteSize } = summary.lookup.asset;
+    if (media.kind !== 'image' || byteSize > limit) return null;
+    const read = await session.readAsset(path);
+    if (!read?.ok) return null;
+    return {
+      dataUrl: `data:${IMAGE_MEDIA_TYPES[media.format]};base64,${Buffer.from(read.value).toString('base64')}`,
+    };
+  };
+
   return {
     describeSession,
     hasUnsavedChanges: () => session.current()?.isDirty === true,
@@ -542,6 +608,7 @@ export const createAppController = ({
         return { status: 'cancelled' };
       }
 
+      if (assetSlotUsage(slot) !== 'backgroundMusic') return selectImage(slot, chosen);
       const assigned = await session.assignAsset(slot, chosen);
       if (!assigned.ok) {
         return { status: 'rejected', message: assigned.error.message };
@@ -591,6 +658,7 @@ export const createAppController = ({
 
       // From here it is the ordinary way a file enters a theme: examined, identified by its
       // bytes, named after the slot it went into, and staged.
+      if (assetSlotUsage(slot) !== 'backgroundMusic') return selectImage(slot, path);
       const assigned = await session.assignAsset(slot, path);
       if (!assigned.ok) {
         return { status: 'rejected', message: assigned.error.message };
@@ -600,8 +668,28 @@ export const createAppController = ({
       return { status: 'assigned' };
     },
 
-    convertAsset: async ({ slot, fit }) => {
-      const converted = await session.convertAsset(slot, fit);
+    applySelectedCrop: async ({ token, crop }) => {
+      const selected = selectedImage;
+      const theme = session.current();
+      if (selected?.token !== token || theme?.revision !== selected.revision) {
+        return {
+          status: 'rejected',
+          message: 'That image selection is no longer current. Choose it again.',
+        };
+      }
+      const result = await session.assignCroppedAsset(selected.slot, selected.bytes, crop);
+      if (!result.ok) return { status: 'rejected', message: result.error.message };
+      selectedImage = null;
+      publishSession();
+      return { status: 'assigned' };
+    },
+
+    cancelSelectedAsset: (token) => {
+      if (selectedImage?.token === token) selectedImage = null;
+    },
+
+    convertAsset: async ({ slot, fit, crop }) => {
+      const converted = await session.convertAsset(slot, fit, crop);
       if (!converted.ok) {
         // The theme is untouched, so there is nothing to tell the window about but the reason.
         return { status: 'rejected', message: converted.error.message };
@@ -647,27 +735,8 @@ export const createAppController = ({
       return { status: 'generated' };
     },
 
-    previewAsset: async (path) => {
-      const summary = session.current()?.assets.find((asset) => asset.path === path);
-      if (summary?.lookup.status !== 'found') {
-        return null;
-      }
-
-      const { media, byteSize } = summary.lookup.asset;
-      // Only images, and only what was already identified as one: the window is shown
-      // pixels, and only for a file this process has already read and recognised.
-      if (media.kind !== 'image' || byteSize > MAX_PREVIEW_BYTES) {
-        return null;
-      }
-
-      const read = await session.readAsset(path);
-      if (!read?.ok) {
-        return null;
-      }
-
-      const encoded = Buffer.from(read.value).toString('base64');
-      return { dataUrl: `data:${IMAGE_MEDIA_TYPES[media.format]};base64,${encoded}` };
-    },
+    previewAsset: async (path) => readAssetPreview(path, MAX_PREVIEW_BYTES),
+    previewCropSource: async (path) => readAssetPreview(path, MAX_THEME_ASSET_BYTES),
 
     startDraft: async (request) => {
       if (!(await confirmDiscardChanges())) {

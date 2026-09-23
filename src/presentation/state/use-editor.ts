@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useReducer } from 'react';
-import type { ImageFit } from '@/domain/editing/image-conversion';
+import type { ImageCrop } from '@/domain/editing/image-crop';
 import type { ThemeAssetSlot } from '@/domain/editing/theme-asset-slot';
 import type { ThemeEdit } from '@/domain/editing/theme-edit';
 import type { ThemePreviewKind } from '@/domain/vita/theme-previews';
 import type { AppCommand, ExportFormat, StartDraftRequest, VitaThemeBridge } from '@/ipc';
 import type { PreviewSurfaceId } from '../preview/surfaces';
 import type { SectionId } from './sections';
+import { assetSlotLabel } from './asset-slot-label';
 import {
   conversionResultAction,
   exportResultAction,
@@ -49,7 +50,9 @@ export interface EditorActions {
   /** Opens the question of converting what is in a slot; converting itself is below. */
   readonly beginConversion: (slot: ThemeAssetSlot, label: string) => void;
   /** Asks for what is in a slot to be made into a picture the theme can use. */
-  readonly convertAsset: (slot: ThemeAssetSlot, fit: ImageFit) => Promise<void>;
+  readonly convertAsset: (slot: ThemeAssetSlot, crop: ImageCrop) => Promise<void>;
+  readonly applySelectedCrop: (token: string, crop: ImageCrop) => Promise<void>;
+  readonly cancelSelectedAsset: (token: string) => void;
   readonly convertIncompatibleImages: (fit: 'cover' | 'contain') => Promise<void>;
   readonly clearAsset: (slot: ThemeAssetSlot) => Promise<void>;
   /** Asks for the pictures the theme is browsed by to be drawn from its own artwork. */
@@ -57,6 +60,7 @@ export interface EditorActions {
   readonly generatePageThumbnail: (page: number) => Promise<void>;
   /** Asks what one of the theme's images looks like, as pixels rather than a location. */
   readonly previewAsset: (path: string) => Promise<string | null>;
+  readonly previewCropSource: (path: string) => Promise<string | null>;
 
   readonly startDraft: (request: StartDraftRequest) => Promise<void>;
   readonly openThemeFolder: () => Promise<void>;
@@ -96,16 +100,24 @@ export const useEditor = (bridge: VitaThemeBridge): Editor => {
   const [state, dispatch] = useReducer(editorReducer, initialEditorState);
 
   useEffect(() => {
+    let current = true;
+    let receivedSessionEvent = false;
+    const unsubscribe = bridge.onSessionChanged((session) => {
+      receivedSessionEvent = true;
+      dispatch({ type: 'session-changed', session });
+    });
     const describe = async (): Promise<void> => {
       const [app, session] = await Promise.all([bridge.describeApp(), bridge.describeSession()]);
+      if (!current) return;
       dispatch({ type: 'app-described', app });
-      dispatch({ type: 'session-changed', session });
+      if (!receivedSessionEvent) dispatch({ type: 'session-changed', session });
     };
 
     void describe();
-    return bridge.onSessionChanged((session) => {
-      dispatch({ type: 'session-changed', session });
-    });
+    return () => {
+      current = false;
+      unsubscribe();
+    };
   }, [bridge]);
 
   const whilePending = useCallback(
@@ -133,23 +145,55 @@ export const useEditor = (bridge: VitaThemeBridge): Editor => {
     const undo = (): Promise<void> => bridge.undo();
     const redo = (): Promise<void> => bridge.redo();
 
-    const assignAsset = (slot: ThemeAssetSlot): Promise<void> =>
-      whilePending('assigning', async () => {
-        const result = await bridge.assignAsset({ slot });
+    const handleAssignment = (
+      slot: ThemeAssetSlot,
+      result: Awaited<ReturnType<VitaThemeBridge['assignAsset']>>,
+    ): void => {
+      if (result.status === 'selected') {
+        dispatch({
+          type: 'dialog-opened',
+          dialog: {
+            kind: 'crop-selected',
+            slot,
+            label: assetSlotLabel(slot),
+            token: result.token,
+            dataUrl: result.dataUrl,
+            width: result.width,
+            height: result.height,
+          },
+        });
+      } else {
         dispatch(
           result.status === 'rejected'
             ? { type: 'notice-shown', notice: { tone: 'error', message: result.message } }
             : { type: 'notice-dismissed' },
         );
+      }
+    };
+
+    const assignAsset = (slot: ThemeAssetSlot): Promise<void> =>
+      whilePending('assigning', async () => {
+        const result = await bridge.assignAsset({ slot });
+        handleAssignment(slot, result);
       });
 
-    const convertAsset = (slot: ThemeAssetSlot, fit: ImageFit): Promise<void> =>
+    const convertAsset = (slot: ThemeAssetSlot, crop: ImageCrop): Promise<void> =>
       whilePending('converting', async () => {
-        const result = await bridge.convertAsset({ slot, fit });
+        const result = await bridge.convertAsset({ slot, fit: 'cover', crop });
         if (result.status === 'converted') {
           dispatch({ type: 'dialog-closed' });
         }
         dispatch(conversionResultAction(result));
+      });
+
+    const applySelectedCrop = (token: string, crop: ImageCrop): Promise<void> =>
+      whilePending('converting', async () => {
+        const result = await bridge.applySelectedCrop({ token, crop });
+        if (result.status === 'assigned') {
+          dispatch({ type: 'dialog-closed' });
+        } else if (result.status === 'rejected') {
+          dispatch({ type: 'notice-shown', notice: { tone: 'error', message: result.message } });
+        }
       });
 
     const convertIncompatibleImages = (fit: 'cover' | 'contain'): Promise<void> =>
@@ -216,11 +260,7 @@ export const useEditor = (bridge: VitaThemeBridge): Editor => {
     const dropAsset = (slot: ThemeAssetSlot, file: File): Promise<void> =>
       whilePending('assigning', async () => {
         const result = await bridge.dropAsset(slot, file);
-        dispatch(
-          result.status === 'rejected'
-            ? { type: 'notice-shown', notice: { tone: 'error', message: result.message } }
-            : { type: 'notice-dismissed' },
-        );
+        handleAssignment(slot, result);
       });
 
     const importIconSet = (): Promise<void> =>
@@ -309,6 +349,12 @@ export const useEditor = (bridge: VitaThemeBridge): Editor => {
         case 'toggle-preview':
           dispatch({ type: 'mode-toggled' });
           return;
+        case 'show-edit':
+          dispatch({ type: 'mode-selected', mode: 'edit' });
+          return;
+        case 'show-preview':
+          dispatch({ type: 'mode-selected', mode: 'preview' });
+          return;
         case 'undo':
           void undo();
           return;
@@ -327,11 +373,17 @@ export const useEditor = (bridge: VitaThemeBridge): Editor => {
         dispatch({ type: 'dialog-opened', dialog: { kind: 'convert-asset', slot, label } });
       },
       convertAsset,
+      applySelectedCrop,
+      cancelSelectedAsset: (token) => {
+        void bridge.cancelSelectedAsset(token);
+      },
       convertIncompatibleImages,
       clearAsset: (slot) => applyEdit({ kind: 'clear-asset', slot }),
       generatePreviews,
       generatePageThumbnail,
       previewAsset: async (path) => (await bridge.previewAsset({ path }))?.dataUrl ?? null,
+      previewCropSource: async (path) =>
+        (await bridge.previewCropSource({ path }))?.dataUrl ?? null,
 
       selectSection: (section) => {
         dispatch({ type: 'section-selected', section });

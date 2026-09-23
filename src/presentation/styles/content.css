@@ -1442,3 +1442,111 @@
     margin-left: auto;
   }
 }
+.crop-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(calc(100vh - 80px), 820px);
+  display: flex;
+  flex-direction: column;
+}
+
+.crop-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.crop-body > .dialog-text,
+.crop-body > .field-hint {
+  align-self: stretch;
+  margin: 0;
+}
+
+.crop-viewport {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  outline: 1px solid var(--line-strong);
+  background-color: #262c31;
+  background-image:
+    linear-gradient(45deg, #31383d 25%, transparent 25%),
+    linear-gradient(-45deg, #31383d 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #31383d 75%),
+    linear-gradient(-45deg, transparent 75%, #31383d 75%);
+  background-size: 20px 20px;
+  background-position:
+    0 0,
+    0 10px,
+    10px -10px,
+    -10px 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.crop-viewport:active {
+  cursor: grabbing;
+}
+.crop-viewport:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.crop-viewport img {
+  position: absolute;
+  max-width: none;
+  pointer-events: none;
+}
+.crop-image-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.crop-viewport[data-shape='circle'] .crop-image-layer {
+  clip-path: circle(50% at 50% 50%);
+}
+.crop-shape {
+  width: min(100%, 680px);
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  border: 0;
+  padding: 0;
+}
+.crop-shape legend {
+  color: var(--text-muted);
+  padding: 0 0 6px;
+}
+.crop-shape label {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.crop-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+
+.crop-controls {
+  width: min(100%, 680px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.crop-controls input[type='range'] {
+  flex: 1;
+  min-width: 80px;
+  accent-color: var(--accent);
+}
+.crop-zoom-value {
+  width: 42px;
+  text-align: right;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}

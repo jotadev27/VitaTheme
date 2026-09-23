@@ -7,6 +7,7 @@ import type {
   AssetPreview,
   AssignAssetRequest,
   AssignAssetResult,
+  SelectedCropRequest,
   ConvertAssetRequest,
   ConvertAssetResult,
   BulkImageConversionRequest,
@@ -95,8 +96,14 @@ const bridge: VitaThemeBridge = {
           path,
         }) as Promise<AssignAssetResult>);
   },
+  applySelectedCrop: (request: SelectedCropRequest) =>
+    ipcRenderer.invoke(IPC_CHANNELS.applySelectedCrop, request) as Promise<AssignAssetResult>,
+  cancelSelectedAsset: (token: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.cancelSelectedAsset, token) as Promise<void>,
   previewAsset: (request: PreviewAssetRequest) =>
     ipcRenderer.invoke(IPC_CHANNELS.previewAsset, request) as Promise<AssetPreview | null>,
+  previewCropSource: (request: PreviewAssetRequest) =>
+    ipcRenderer.invoke(IPC_CHANNELS.previewCropSource, request) as Promise<AssetPreview | null>,
   convertAsset: (request: ConvertAssetRequest) =>
     ipcRenderer.invoke(IPC_CHANNELS.convertAsset, request) as Promise<ConvertAssetResult>,
   convertIncompatibleImages: (request: BulkImageConversionRequest) =>

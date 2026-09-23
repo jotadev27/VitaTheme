@@ -1,4 +1,5 @@
 import type { ImageFit } from '../domain/editing/image-conversion';
+import type { ImageCrop } from '../domain/editing/image-crop';
 import type { ThemeAssetSlot } from '../domain/editing/theme-asset-slot';
 import type { ThemeEdit } from '../domain/editing/theme-edit';
 import type { InspectedAsset } from '../domain/model/media';
@@ -41,12 +42,15 @@ export const IPC_CHANNELS = {
   redo: 'vitatheme:theme:redo',
   assignAsset: 'vitatheme:theme:assign-asset',
   assignDroppedAsset: 'vitatheme:theme:assign-dropped-asset',
+  applySelectedCrop: 'vitatheme:theme:apply-selected-crop',
+  cancelSelectedAsset: 'vitatheme:theme:cancel-selected-asset',
   convertAsset: 'vitatheme:theme:convert-asset',
   convertIncompatibleImages: 'vitatheme:theme:convert-incompatible-images',
   generatePreviews: 'vitatheme:theme:generate-previews',
   generatePageThumbnail: 'vitatheme:theme:generate-page-thumbnail',
   importIconSet: 'vitatheme:theme:import-icon-set',
   previewAsset: 'vitatheme:asset:preview',
+  previewCropSource: 'vitatheme:asset:crop-source',
   runExport: 'vitatheme:export:run',
   confirmExportReplacement: 'vitatheme:export:confirm-replacement',
   revealLastExport: 'vitatheme:export:reveal-last',
@@ -174,6 +178,12 @@ export interface ConvertAssetRequest {
   readonly slot: ThemeAssetSlot;
   /** How a picture of another shape is made to fit. The window chooses; nothing else does. */
   readonly fit: ImageFit;
+  readonly crop?: ImageCrop;
+}
+
+export interface SelectedCropRequest {
+  readonly token: string;
+  readonly crop: ImageCrop;
 }
 
 /** Only a fit choice crosses the boundary; the privileged session finds the images itself. */
@@ -225,6 +235,13 @@ export type EditResult =
 
 export type AssignAssetResult =
   | { readonly status: 'assigned' }
+  | {
+      readonly status: 'selected';
+      readonly token: string;
+      readonly dataUrl: string;
+      readonly width: number;
+      readonly height: number;
+    }
   | { readonly status: 'cancelled' }
   | { readonly status: 'rejected'; readonly message: string };
 
@@ -314,6 +331,8 @@ export type AppCommand =
   | 'export-archive'
   | 'reveal-export'
   | 'toggle-preview'
+  | 'show-edit'
+  | 'show-preview'
   | 'undo'
   | 'redo';
 

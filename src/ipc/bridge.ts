@@ -9,6 +9,7 @@ import type {
   AssetPreview,
   AssignAssetRequest,
   AssignAssetResult,
+  SelectedCropRequest,
   ConvertAssetRequest,
   ConvertAssetResult,
   BulkImageConversionRequest,
@@ -76,8 +77,11 @@ export interface VitaThemeBridge {
    * makes up a `File` of its own gets nothing.
    */
   dropAsset(slot: ThemeAssetSlot, file: File): Promise<AssignAssetResult>;
+  applySelectedCrop(request: SelectedCropRequest): Promise<AssignAssetResult>;
+  cancelSelectedAsset(token: string): Promise<void>;
   /** Asks what one of the theme's images looks like. */
   previewAsset(request: PreviewAssetRequest): Promise<AssetPreview | null>;
+  previewCropSource(request: PreviewAssetRequest): Promise<AssetPreview | null>;
   /** Asks for what is in a slot to be made into a picture the theme can use. */
   convertAsset(request: ConvertAssetRequest): Promise<ConvertAssetResult>;
   convertIncompatibleImages(

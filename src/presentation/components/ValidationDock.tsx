@@ -53,7 +53,6 @@ export const ValidationDock = ({
   assets,
   theme,
   onConvert,
-  onConvertAll,
   onSelectIssue,
   onClose,
 }: {
@@ -61,7 +60,6 @@ export const ValidationDock = ({
   readonly assets: readonly ThemeAssetSummary[];
   readonly theme: ThemeSnapshot;
   readonly onConvert: (slot: ThemeAssetSlot) => void;
-  readonly onConvertAll: () => void;
   readonly onSelectIssue: (section: SectionId, assetPath: string | null) => void;
   readonly onClose: () => void;
 }): ReactElement => {
@@ -118,17 +116,6 @@ export const ValidationDock = ({
           <CloseIcon />
         </button>
       </div>
-
-      {convertible.length > 1 ? (
-        <div className="dock-bulk-fix">
-          <span>
-            {String(convertible.length)} images can be converted together without stretching.
-          </span>
-          <button type="button" className="btn btn-small" onClick={onConvertAll}>
-            Convert incompatible images…
-          </button>
-        </div>
-      ) : null}
 
       {issues.length === 0 ? (
         <EmptyState

@@ -7,6 +7,7 @@ import {
   type ImageConversionErrorCode,
 } from '../../application/ports/image-converter';
 import type { ImageConversionTarget, ImageFit } from '../../domain/editing/image-conversion';
+import { imageCropPlacement, type ImageCrop } from '../../domain/editing/image-crop';
 import { failure, success, type Result } from '../../domain/shared/result';
 import { identifyMedia } from '../media/media-probe';
 import { encodeIndexedPng } from './indexed-png';
@@ -120,6 +121,7 @@ export const decodeAndFit = async (
   width: number,
   height: number,
   fit: ImageFit,
+  crop?: ImageCrop,
 ): Promise<Result<RawBitmap, ImageConversionError>> => {
   const decodable = checkDecodable(source);
   if (!decodable.ok) {
@@ -135,6 +137,23 @@ export const decodeAndFit = async (
 
   try {
     const size = { w: width, h: height };
+    if (crop !== undefined) {
+      const placement = imageCropPlacement(
+        image.bitmap.width,
+        image.bitmap.height,
+        width,
+        height,
+        crop,
+      );
+      image.resize({ w: placement.width, h: placement.height });
+      image.crop({
+        x: Math.round(-placement.left),
+        y: Math.round(-placement.top),
+        w: width,
+        h: height,
+      });
+      return success(raw(image));
+    }
     switch (fit) {
       case 'cover':
         image.cover(size);

@@ -19,6 +19,7 @@ import type { AppController } from '../app/app-controller';
 import { isTrustedSender } from '../window';
 import {
   parseConvertAssetRequest,
+  parseSelectedCropRequest,
   parseBulkImageConversionRequest,
   parseDroppedAssetRequest,
   parseGeneratePreviewsRequest,
@@ -224,6 +225,27 @@ export const registerIpcHandlers = (controller: AppController): void => {
     { status: 'cancelled' },
   );
 
+  handle<AssignAssetResult>(
+    IPC_CHANNELS.applySelectedCrop,
+    (payload) => {
+      const request = parseSelectedCropRequest(payload);
+      return request.ok
+        ? controller.applySelectedCrop(request.value)
+        : ({ status: 'rejected', message: request.error } satisfies AssignAssetResult);
+    },
+    { status: 'rejected', message: 'The request did not come from the application window.' },
+  );
+  handle<undefined>(
+    IPC_CHANNELS.cancelSelectedAsset,
+    (payload) => {
+      if (typeof payload === 'string' && /^[a-f0-9-]{36}$/.test(payload)) {
+        controller.cancelSelectedAsset(payload);
+      }
+      return undefined;
+    },
+    undefined,
+  );
+
   handle<ConvertAssetResult>(
     IPC_CHANNELS.convertAsset,
     (payload) => {
@@ -278,6 +300,14 @@ export const registerIpcHandlers = (controller: AppController): void => {
     (payload) => {
       const path = parseThemeAssetPathRequest(payload);
       return path.ok ? controller.previewAsset(path.value) : null;
+    },
+    null,
+  );
+  handle<AssetPreview | null>(
+    IPC_CHANNELS.previewCropSource,
+    (payload) => {
+      const path = parseThemeAssetPathRequest(payload);
+      return path.ok ? controller.previewCropSource(path.value) : null;
     },
     null,
   );

@@ -59,6 +59,8 @@ export interface ImageConversionTarget {
   readonly flatten: boolean;
   /** Set when the result is a palette image; the most colours that palette may hold. */
   readonly maxColors: number | null;
+  /** Page indicator dots alone offer the square/circle artwork choice. */
+  readonly allowsCircle: boolean;
 }
 
 /**
@@ -80,6 +82,7 @@ export const imageConversionTarget = (kind: ThemeImageAssetKind): ImageConversio
     bitDepth: MAX_IMAGE_BIT_DEPTH,
     flatten: opaque,
     maxColors: opaque ? MAX_PALETTE_COLORS : null,
+    allowsCircle: kind === 'pageIndicator',
   };
 };
 

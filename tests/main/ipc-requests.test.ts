@@ -256,6 +256,21 @@ describe('the operations that take arguments, and the ones that do not', () => {
 });
 
 describe('asking for a picture to be converted', () => {
+  it('preserves a circular crop choice and rejects unknown shapes', () => {
+    const request = {
+      slot: { kind: 'basePageIndicator' },
+      fit: 'cover',
+      crop: { zoom: 1, x: 0, y: 0, shape: 'circle' },
+    };
+    expect(parseConvertAssetRequest(request)).toMatchObject({
+      ok: true,
+      value: { crop: { shape: 'circle' } },
+    });
+    expect(
+      parseConvertAssetRequest({ ...request, crop: { ...request.crop, shape: 'triangle' } }).ok,
+    ).toBe(false);
+  });
+
   it('accepts a slot and a way of fitting a picture into it', () => {
     const parsed = parseConvertAssetRequest({
       slot: { kind: 'liveAreaBackground', page: 2 },

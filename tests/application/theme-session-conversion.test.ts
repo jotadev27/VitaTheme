@@ -19,7 +19,7 @@ import { themeXmlCodec } from '@/infrastructure/theme-xml/theme-xml-codec';
 import { identifyMedia } from '@/infrastructure/media/media-probe';
 import { convertImage } from '@/infrastructure/image/convert-image';
 import { composeImage } from '@/infrastructure/image/compose-image';
-import { jpegBytes, pngBytes } from '../support/image-fixtures';
+import { jpegBytes, pixelsOf, pngBytes } from '../support/image-fixtures';
 import { sessionAdapters } from '../support/project-fixtures';
 import { readZipArchive, zipEntryNames } from '../support/zip-reader';
 
@@ -53,6 +53,62 @@ const newSession = (images?: ImageConverter): ThemeSession =>
   });
 
 const BACKGROUND: ThemeAssetSlot = { kind: 'liveAreaBackground', page: 0 };
+
+describe('cropping a chosen image before assignment', () => {
+  it('commits one change that survives undo, redo, save, reopen and both exports', async () => {
+    const source = await chosenPhoto('positioned.jpg');
+    const original = await readFile(source);
+    const applied = await session.assignCroppedAsset(BACKGROUND, original, {
+      zoom: 1.25,
+      x: 0.6,
+      y: -0.4,
+    });
+    expect(applied.ok).toBe(true);
+    if (!applied.ok) return;
+    expect(applied.value.project.home.pages[0]).toMatchObject({
+      background: 'background-1.png',
+      thumbnail: 'background-thumbnail-1.png',
+      generatedThumbnail: true,
+    });
+    expect(applied.value.isDirty).toBe(true);
+    expect(applied.value.report.issues.map((issue) => issue.code)).not.toContain(
+      'asset.wrong-dimensions',
+    );
+    const cropped = await session.readAsset('background-1.png' as never);
+    expect(cropped?.ok).toBe(true);
+    expect((await readFile(source)).equals(original)).toBe(true);
+
+    expect((await session.undo())?.project.home.pages[0]?.background).toBeNull();
+    expect((await session.redo())?.project.home.pages[0]?.background).toBe('background-1.png');
+    expect(await session.readAsset('background-1.png' as never)).toEqual(cropped);
+
+    const projectPath = join(workspace, 'Positioned.vitatheme');
+    expect((await session.saveTo(projectPath, 'Positioned')).ok).toBe(true);
+    session = newSession();
+    expect((await session.openProject(projectPath, 'Positioned')).ok).toBe(true);
+    expect(await session.readAsset('background-1.png' as never)).toEqual(cropped);
+
+    expect(
+      (
+        await session.exportTo({
+          kind: 'folder',
+          path: join(workspace, 'PositionedExport'),
+          overwrite: false,
+        })
+      )?.status,
+    ).toBe('exported');
+    expect(
+      new Uint8Array(await readFile(join(workspace, 'PositionedExport', 'background-1.png'))),
+    ).toEqual(cropped?.ok ? cropped.value : null);
+    const archivePath = join(workspace, 'Positioned.zip');
+    expect(
+      (await session.exportTo({ kind: 'archive', path: archivePath, overwrite: false }))?.status,
+    ).toBe('exported');
+    expect(zipEntryNames(readZipArchive(await readFile(archivePath)))).toContain(
+      'background-1.png',
+    );
+  });
+});
 
 /** A picture somebody chose: the wrong size, the wrong format, and full of colours. */
 const chosenPhoto = async (name = 'holiday.jpg'): Promise<string> => {
@@ -96,6 +152,34 @@ afterEach(async () => {
 });
 
 describe('converting what is in a slot', () => {
+  it('keeps a circular page indicator transparent when exported', async () => {
+    const source = join(workspace, 'square-dot.png');
+    await writeFile(source, await pngBytes({ width: 22, height: 22 }));
+    const slot = { kind: 'basePageIndicator' } as const;
+    await assign(source, slot);
+
+    const converted = await session.convertAsset(slot, 'cover', {
+      zoom: 1,
+      x: 0,
+      y: 0,
+      shape: 'circle',
+    });
+    expect(converted.ok).toBe(true);
+    if (!converted.ok) return;
+    const path = converted.value.theme.project.home.basePageIndicator;
+    expect(path).not.toBeNull();
+    if (path === null) return;
+
+    const destination = join(workspace, 'CircularTheme');
+    expect(
+      (await session.exportTo({ kind: 'folder', path: destination, overwrite: false }))?.status,
+    ).toBe('exported');
+    const pixels = await pixelsOf(new Uint8Array(await readFile(join(destination, path))));
+    expect([pixels.width, pixels.height]).toEqual([22, 22]);
+    expect(pixels.at(0, 0)[3]).toBe(0);
+    expect(pixels.at(11, 11)[3]).toBe(255);
+  });
+
   it('replaces it with a picture that meets the slot’s specification', async () => {
     await assign(await chosenPhoto());
     const before = session.current();

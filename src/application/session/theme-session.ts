@@ -15,6 +15,7 @@ import {
   imageConversionWouldChange,
   type ImageFit,
 } from '../../domain/editing/image-conversion';
+import type { ImageCrop } from '../../domain/editing/image-crop';
 import { incompatibleImageSlots } from '../../domain/editing/bulk-image-conversion';
 import {
   pageThumbnailSource,
@@ -326,6 +327,12 @@ export interface ThemeSession {
     slot: ThemeAssetSlot,
     location: string,
   ): Promise<Result<LoadedTheme, AssignAssetFailure>>;
+  /** Converts a selected source before it enters the theme, as one undoable change. */
+  assignCroppedAsset(
+    slot: ThemeAssetSlot,
+    source: Uint8Array,
+    crop: ImageCrop,
+  ): Promise<Result<LoadedTheme, AssignAssetFailure | ConvertAssetFailure>>;
   /**
    * Brings several files into the theme as one change.
    *
@@ -348,6 +355,7 @@ export interface ThemeSession {
   convertAsset(
     slot: ThemeAssetSlot,
     fit: ImageFit,
+    crop?: ImageCrop,
   ): Promise<Result<AssetConversion, ConvertAssetFailure>>;
   /** Converts every safe, known incompatible image as one atomic, undoable change. */
   convertIncompatibleImages(
@@ -1051,6 +1059,77 @@ export const createThemeSession = ({
       return success(open.loaded);
     },
 
+    assignCroppedAsset: async (slot, source, crop) => {
+      const theme = open;
+      if (theme === null) {
+        return failure({ code: 'no-theme-open', message: EDIT_FAILURE_MESSAGES['no-theme-open'] });
+      }
+      const usage = assetSlotUsage(slot);
+      if (usage === 'backgroundMusic') {
+        return failure({ code: 'not-an-image', message: 'This slot does not hold an image.' });
+      }
+      if (
+        (slot.kind === 'liveAreaBackground' || slot.kind === 'liveAreaThumbnail') &&
+        theme.loaded.project.home.pages[slot.page] === undefined
+      ) {
+        return failure({ code: 'unknown-page', message: EDIT_FAILURE_MESSAGES['unknown-page'] });
+      }
+      const converted = await images.convert(source, imageConversionTarget(usage), 'cover', crop);
+      if (!converted.ok) return failure(converted.error);
+      const name = assetSlotFileName(slot, converted.value.inspected.media);
+      if (!name.ok) {
+        return failure({
+          code: 'unusable-name',
+          message: 'The converted picture cannot be named.',
+        });
+      }
+
+      const staged = new Map(theme.staged);
+      const inspectedFiles = new Map(theme.inspected);
+      let nextConversion = conversions + 1;
+      staged.set(name.value, {
+        kind: 'converted',
+        bytes: converted.value.bytes,
+        inspected: converted.value.inspected,
+        id: String(nextConversion),
+      });
+      inspectedFiles.set(name.value, { status: 'found', asset: converted.value.inspected });
+      let project = withAssetAtSlot(theme.loaded.project, slot, name.value);
+
+      if (
+        slot.kind === 'liveAreaBackground' &&
+        pageThumbnailSource(theme.loaded.project, slot.page) !== 'custom'
+      ) {
+        const thumbnail = await drawPageThumbnail(converted.value.bytes);
+        if (!thumbnail.ok) return failure(thumbnail.error);
+        nextConversion += 1;
+        const result = stagePageThumbnail(
+          project,
+          slot.page,
+          thumbnail.value,
+          staged,
+          inspectedFiles,
+          nextConversion,
+        );
+        if (!result.ok) return failure(result.error);
+        project = result.value;
+      }
+
+      open = await describe(
+        {
+          ...theme,
+          staged,
+          inspected: inspectedFiles,
+          history: historyAfterChange(theme.history, versionOf(theme), null),
+        },
+        project,
+        nextRevision(),
+        assetRevisionOf(theme, true),
+      );
+      conversions = nextConversion;
+      return success(open.loaded);
+    },
+
     assignAssets: async (assignments) => {
       const theme = open;
       if (theme === null) {
@@ -1103,7 +1182,7 @@ export const createThemeSession = ({
       return success({ theme: open.loaded, assigned, rejected });
     },
 
-    convertAsset: async (slot, fit) => {
+    convertAsset: async (slot, fit, crop) => {
       const theme = open;
       if (theme === null) {
         return failure({ code: 'no-theme-open', message: EDIT_FAILURE_MESSAGES['no-theme-open'] });
@@ -1144,7 +1223,7 @@ export const createThemeSession = ({
         return failure({ code: 'not-an-image', message: read.error.message });
       }
 
-      const converted = await images.convert(read.value, imageConversionTarget(usage), fit);
+      const converted = await images.convert(read.value, imageConversionTarget(usage), fit, crop);
       if (!converted.ok) {
         // Nothing has been touched: the theme is exactly as it was before the conversion.
         return failure(converted.error);
@@ -1275,7 +1354,11 @@ export const createThemeSession = ({
             message: 'Music cannot be converted as an image.',
           });
         }
-        const output = await images.convert(read.value, imageConversionTarget(usage), fit);
+        const output = await images.convert(
+          read.value,
+          imageConversionTarget(usage),
+          usage === 'notificationBadge' ? 'cover' : fit,
+        );
         if (!output.ok) {
           return failure(output.error);
         }
