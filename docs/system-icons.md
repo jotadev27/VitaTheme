@@ -39,8 +39,8 @@ Every slot takes a file the same way the rest of the editor does:
 
 - **Choose…** opens a file dialog.
 - **Drag** an image onto the slot from Finder or Explorer.
-- **Convert…** appears when the picture is not what the slot needs, and makes one that is —
-  128×128, PNG — without touching the file you dragged in. See
+- The crop editor opens before an image is assigned. Drag and zoom to select the area that
+  becomes the 128×128 PNG; cancel leaves the slot unchanged. See
   [image-conversion.md](./image-conversion.md).
 - **Restore default** takes it out again.
 

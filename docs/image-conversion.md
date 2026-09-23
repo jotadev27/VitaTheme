@@ -14,12 +14,18 @@ Two things are kept apart throughout, and this document keeps them apart too:
 
 ## The workflow
 
-1. Put a picture in a slot the usual way (**Choose…**).
-2. The validator reports what is wrong with it, and the slot offers **Convert…** whenever
-   converting would actually change something.
-3. The dialog shows what you have, what the slot takes, and — when the shapes differ — how the
-   picture should be fitted.
-4. **Convert** replaces what is in the slot with the result.
+1. Choose or drop a PNG, JPEG, BMP or GIF image for an asset slot.
+2. Position it in the crop frame, which has the exact proportions of that asset. Drag in
+   either direction, move the 0–100% zoom slider, or reset to the centred fill position.
+   Zero percent is the initial fill; 100% is the maximum enlargement.
+   For **Other pages** and **Current page** indicators, choose **Square** or **Circle**. Circle
+   keeps the picture's colours at the edge and makes the corners transparent, so no black square
+   remains around the dot.
+3. **Apply** converts the visible crop to the required PNG and assigns it as one change.
+   **Cancel** leaves the project unchanged.
+
+An image already in a slot that needs conversion offers **Convert to PNG…**. It opens the
+same crop editor before changing the asset.
 
 The file you chose is never modified. The result is staged the same way a chosen file is, so
 it is one change you can take back, it makes the project unsaved, and it is saved, previewed,
@@ -57,8 +63,8 @@ Start screen background "lock-screen.bin" must be a PNG image, but it is a WEBP 
 VitaTheme cannot convert WEBP; save it as a PNG or JPEG first.
 ```
 
-The picture is still brought into the theme — it is the file you chose — and the validator
-blocks the export until it is replaced, rather than the application quietly dropping it.
+The unsupported picture is refused before assignment. Export is unchanged until a supported
+source is selected and applied.
 
 TIFF is a near miss worth naming: the image library can decode one, but the application does
 not identify TIFF headers, so a TIFF is treated as a file type it does not recognise. Nothing
@@ -82,21 +88,18 @@ transparent keep a full alpha channel, because losing that would be the worse mi
 
 The result always has **exactly** the required dimensions.
 
-Choosing or dropping a LiveArea background also generates its separate page thumbnail at
-the canonical 360×192 size, using a centred proportional crop. Choosing a thumbnail by hand
-converts it for that slot and marks it custom. Bulk conversion regenerates generated thumbnails
-when their backgrounds change; it leaves custom page thumbnails alone.
+Applying a LiveArea background also generates its separate page thumbnail at the canonical
+360×192 size from the cropped background. Choosing a thumbnail by hand converts it for that
+slot and marks it custom. Generated thumbnails follow later background changes; custom
+thumbnails remain author controlled.
 
 ### Resizing
 
-When the picture is not the target's shape you choose how it is fitted:
-
-- **Fill the slot** (default) — keeps the proportions and crops what hangs over the edges.
-- **Fit the whole picture** — keeps the proportions and fills the rest with black.
-- **Stretch to fit** — uses every pixel and distorts the picture.
-
-Nothing is stretched without being asked: a picture of another shape is never silently
-distorted, and the dialog says which of the three will happen before you commit to it.
+The editor initially fills the target without stretching. Dragging chooses the portion of
+the source that remains visible; zoom enlarges it around the selected position. Movement is
+clamped so the source always covers the target. Reset returns to the centred fill crop.
+The viewport uses target dimensions from the same domain specification as validation.
+Notification badges therefore have no letterbox bars when converted through this editor.
 
 ### Quantisation, and what it costs
 
@@ -113,13 +116,12 @@ The palette is built with Wu's algorithm and the pixels are mapped onto it with 
 dithering. Both were chosen by measurement: on this project's own fixtures, Wu's algorithm
 produces a palette of the same quality as the library's default in about a third of the time.
 
-Conversion is **deterministic** — the same picture, slot and fit produce the same bytes.
+Conversion is **deterministic** — the same picture, slot and crop position produce the same bytes.
 
 ### Transparency
 
 - For a slot the format has no transparency for, transparency is composed over **black** —
-  which is what the console does with it — and the result is fully opaque. Areas padded by
-  "fit the whole picture" are black for the same reason.
+  which is what the console does with it — and the result is fully opaque.
 - For a slot that may be transparent, the alpha channel is preserved exactly.
 
 ## Limits and safety
@@ -137,9 +139,10 @@ full-screen wallpaper takes about a second, and the application stays responsive
 A worker that dies — which is what an image built to exhaust memory looks like — fails that
 one conversion and is replaced, rather than taking the application down.
 
-The window never names a file. It asks for a slot to be converted and chooses how the picture
-is fitted; every path stays in the privileged process, and the result never travels as bytes
-through the bridge — the preview asks for it the same way it asks for any other asset.
+The window never names a chosen file. The privileged process holds an opaque selection until
+Apply, and the crop position crosses the bridge as bounded numbers. The source path remains
+privileged. The window receives image data for the crop preview, but the converted result
+is staged and later previewed through the usual asset path.
 
 A conversion that fails changes nothing: no asset is replaced, no half-made picture is staged,
 and the error explains what happened.

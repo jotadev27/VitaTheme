@@ -10,7 +10,7 @@ VitaTheme is a desktop editor for creating, editing, previewing, validating and 
 
 - Edit LiveArea pages, system icons, the start screen, information bar, colours and metadata with a live preview.
 - Generate page thumbnails and theme preview images from your artwork, with manual overrides when needed.
-- Convert PNG, JPEG, BMP and GIF images to the size and PNG format each asset requires.
+- Position and zoom PNG, JPEG, BMP and GIF artwork in an interactive crop frame before producing each asset's required PNG.
 - Validate theme structure and assets before exporting a PS Vita theme folder or ZIP archive.
 - Save editable `.vitatheme` projects with undo, redo and recovery of unsaved work.
 - Reopen recent projects and drag artwork into the editor.

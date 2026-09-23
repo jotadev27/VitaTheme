@@ -459,9 +459,8 @@ fields are single-line and commit when they are left, so a step back is a whole 
 time either way.
 
 A menu item does not act on the session. It sends a command to the window, which asks for it
-back through the bridge — the same call the toolbar button makes. One path means a menu item
-and a button cannot come to mean different things, and the window stays the only place that
-knows whether an action makes sense right now.
+back through the bridge — the same command path the toolbar uses for actions it displays.
+The menu handles project operations and the toolbar keeps validation, export and mode switching.
 
 ### Uncertainty in the format becomes a warning, not an error
 

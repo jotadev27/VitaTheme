@@ -15,7 +15,7 @@ to open it. The × on a row removes it from the list — **the project itself is
 An entry is added or moved to the top when a project is **opened** or **saved**, never when
 either of those fails. The list holds ten; the oldest falls off.
 
-**Reopen Last Project** (Theme menu, `Ctrl/Cmd+Shift+T`) opens whichever project you worked
+**Reopen Last Project** (File menu, `Ctrl/Cmd+Shift+T`) opens whichever project you worked
 on last. It goes through the same unsaved-changes question as everything else: if the theme
 you have open has changes, you are asked to Save, Don't Save, or Cancel before anything is
 replaced.
@@ -75,7 +75,8 @@ A dropped file goes through exactly the same path as one chosen with **Choose…
 - identified by its **bytes, not its name** — a JPEG called `photo.png` is recognised as a
   JPEG;
 - refused if it is a folder, a link to one, missing, or larger than a theme asset may be;
-- named after the slot it went into, never after the file it came from;
+- shown in the crop editor without changing the project first;
+- converted and named after the slot only when **Apply** is pressed;
 - staged, so **the file on disk is never modified**;
 - one step you can undo, which restores the previous assignment exactly.
 
@@ -83,10 +84,10 @@ Saving, previewing, validating and exporting then treat it like any other artwor
 
 ### Conversion
 
-A dropped picture that does not match the slot's requirements is still accepted, and the slot
-offers **Convert…** exactly as it does for a picture you chose — the same conversion described
-in [`image-conversion.md`](./image-conversion.md). There is no separate conversion path for
-dropped files.
+A dropped image opens the same crop editor as **Choose…**. Drag, zoom and apply to produce
+the required PNG, or cancel without changing the theme. An image already in the theme that
+needs conversion also opens that editor through **Convert to PNG…**. See
+[`image-conversion.md`](./image-conversion.md).
 
 ### Supported formats
 

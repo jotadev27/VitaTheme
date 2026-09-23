@@ -34,10 +34,15 @@ pnpm run verify:package  # read the packaged application back and check what it 
 
 Artifacts appear in `release/`, which is not kept in version control.
 
-`pnpm run icon` regenerates `packaging/icon.png` and the interface-ready brand crops from the
-approved master at `assets/branding/vitatheme-logo.png`. The script only crops and sizes that
-artwork; it does not redraw or reinterpret it. Electron-builder converts the resulting application
-icon to each platform's format during packaging.
+`pnpm run icon` regenerates platform resources from the approved master at
+`assets/branding/vitatheme-logo.png`. macOS keeps its white-backed `packaging/icon.png`.
+Windows uses a transparent, multi-resolution `packaging/icon.ico`; Linux uses transparent
+PNG sizes in `packaging/linux/`. The welcome screen uses the transparent mark, while the
+editor header keeps its white-backed treatment. The approved mark is not redrawn.
+
+The Linux builder uses the PNG icon set for the desktop entry and AppImage resources, and
+copies a 256-pixel icon into application resources for the Electron window. `desktopName`
+and `syncDesktopName` keep the launcher and window identity associated where supported.
 
 ## What ends up in the package
 
