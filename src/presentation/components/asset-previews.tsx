@@ -2,7 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -35,12 +35,27 @@ const NO_PREVIEWS: PreviewCache = { get: () => null, request: () => undefined };
 
 const PreviewContext = createContext<PreviewCache>(NO_PREVIEWS);
 
-interface LoadedPreviews {
+export interface LoadedPreviews {
   readonly revision: number;
   readonly entries: ReadonlyMap<string, string | null>;
 }
 
 const NOTHING_LOADED: ReadonlyMap<string, string | null> = new Map();
+
+export const previewCacheAfterResponse = (
+  previous: LoadedPreviews,
+  activeRevision: number,
+  responseRevision: number,
+  path: string,
+  dataUrl: string | null,
+): LoadedPreviews => {
+  if (activeRevision !== responseRevision) return previous;
+  const entries = new Map(
+    previous.revision === responseRevision ? previous.entries : NOTHING_LOADED,
+  );
+  entries.set(path, dataUrl);
+  return { revision: responseRevision, entries };
+};
 
 export const AssetPreviews = ({
   load,
@@ -69,11 +84,17 @@ export const AssetPreviews = ({
       asked.current.paths.add(path);
 
       void load(path).then((dataUrl) => {
+        // An older read may finish after a replacement or undo. Never let it replace the
+        // newer revision's cache, even when the asset kept the same theme path.
+        if (asked.current.revision !== revision) return;
         setLoaded((previous) => {
-          const base = previous.revision === revision ? previous.entries : NOTHING_LOADED;
-          const next = new Map(base);
-          next.set(path, dataUrl);
-          return { revision, entries: next };
+          return previewCacheAfterResponse(
+            previous,
+            asked.current.revision,
+            revision,
+            path,
+            dataUrl,
+          );
         });
       });
     },
@@ -98,7 +119,7 @@ export const useAssetPreview = (path: string | null): string | null => {
   const cache = useContext(PreviewContext);
   const { request } = cache;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (path !== null) {
       request(path);
     }

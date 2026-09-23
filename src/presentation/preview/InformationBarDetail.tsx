@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 import { imageAssetSpec } from '@/domain/vita/asset-specs';
 import { VITA_INFORMATION_BAR_HEIGHT, VITA_SCREEN_WIDTH } from '@/domain/vita/display';
 import type { ThemeSnapshot } from '@/ipc';
@@ -53,6 +53,7 @@ export const InformationBarDetail = ({
   readonly theme: ThemeSnapshot;
 }): ReactElement => {
   const bar = describeInformationBar(theme);
+  const [badgeState, setBadgeState] = useState<'none' | 'waiting'>('none');
 
   return (
     <>
@@ -60,14 +61,35 @@ export const InformationBarDetail = ({
         title="Information bar"
         note={`${formatPixels(VITA_SCREEN_WIDTH, VITA_INFORMATION_BAR_HEIGHT)}, shown at twice its size`}
       >
+        <div className="bar-state-switch" role="group" aria-label="Notification state">
+          <button
+            type="button"
+            aria-pressed={badgeState === 'none'}
+            onClick={() => {
+              setBadgeState('none');
+            }}
+          >
+            No notifications
+          </button>
+          <button
+            type="button"
+            aria-pressed={badgeState === 'waiting'}
+            onClick={() => {
+              setBadgeState('waiting');
+            }}
+          >
+            Notification waiting
+          </button>
+        </div>
         <div className="bar-detail">
-          <InformationBarStrip bar={bar} />
+          <InformationBarStrip bar={bar} badgeState={badgeState} />
         </div>
         <p className="field-hint">
           The bar is coloured by the theme rather than drawn by it, which is why wallpapers are
           960×512 and not the full height of the screen. What sits in the bar — the clock, the
           battery, the notification count — belongs to the console, and its arrangement differs
-          between models, so it is represented here rather than reproduced.
+          between models. Their placement here is a representation; selected badge artwork is the
+          theme’s own.
         </p>
       </Panel>
 

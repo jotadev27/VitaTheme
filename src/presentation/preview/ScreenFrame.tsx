@@ -77,8 +77,6 @@ export const ScreenImage = ({
   );
 };
 
-const BADGE_LABEL = 'No notifications';
-
 /**
  * The bar across the top of the screen.
  *
@@ -86,14 +84,21 @@ const BADGE_LABEL = 'No notifications';
  * badge — is the console's own, and Sony's manual says the arrangement differs between
  * models, so what is drawn here stands for those things rather than reproducing them.
  */
+export const badgeForNotificationState = (
+  bar: InformationBarPreview,
+  state: 'none' | 'waiting',
+): PreviewImage => (state === 'none' ? bar.noNoticeBadge : bar.newNoticeBadge);
+
 export const InformationBarStrip = ({
   bar,
   showBadge = true,
+  badgeState = 'none',
 }: {
   readonly bar: InformationBarPreview;
   readonly showBadge?: boolean;
+  readonly badgeState?: 'none' | 'waiting';
 }): ReactElement => {
-  const badge = bar.noNoticeBadge.state === 'ready' ? bar.noNoticeBadge : bar.newNoticeBadge;
+  const badge = badgeForNotificationState(bar, badgeState);
   const badgeUrl = useAssetPreview(badge.state === 'ready' ? badge.path : null);
 
   return (
@@ -118,7 +123,11 @@ export const InformationBarStrip = ({
 
       {showBadge && badgeUrl !== null ? (
         // The console masks this image to a circle and places it past the top right corner.
-        <img className="screen-bar-badge" src={badgeUrl} alt={BADGE_LABEL} />
+        <img
+          className="screen-bar-badge"
+          src={badgeUrl}
+          alt={badgeState === 'none' ? 'No notifications badge' : 'Notification waiting badge'}
+        />
       ) : null}
     </div>
   );
