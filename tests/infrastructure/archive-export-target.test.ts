@@ -122,6 +122,8 @@ describe('openArchiveExportTarget', () => {
     await writeCompleteTheme(target);
 
     expect(await readFile(destination, 'utf-8')).toBe('an older archive');
+    await target.discard();
+    expect(await readFile(destination, 'utf-8')).toBe('an older archive');
   });
 
   it('refuses to replace a folder with an archive', async () => {
