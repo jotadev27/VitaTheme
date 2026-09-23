@@ -191,8 +191,8 @@ Two capabilities are deliberately left as Electron ships them:
 
 ## Version
 
-`1.0.0`, from `package.json`, is the first public release version. Installer filenames derive
-from that version; see [release.md](./release.md).
+The current version is `1.1.0` in `package.json`. Installer filenames derive from that
+version; see [release.md](./release.md).
 
 ## Reproducibility
 
