@@ -2,29 +2,29 @@
  * The interface's palette and measurements.
  *
  * Dark, low-saturation neutrals so that a theme's own artwork is the only colourful thing on
- * screen, with one accent — the cyan PS Vita themes use for their own highlights — kept for
- * selection, focus and the single primary action. Severity colours are the exception: they
+ * screen, with a restrained steel accent for selection, focus and primary actions. Severity colours
+ * are the exception: they
  * have to be legible at a glance, because they are the answer to the question this
  * application exists to answer.
  */
 :root {
-  --surface-window: #0f1317;
-  --surface-panel: #151a21;
-  --surface-raised: #1a2129;
-  --surface-sunken: #0c1014;
-  --surface-hover: #1f2831;
-  --surface-selected: #16303a;
+  --surface-window: #141618;
+  --surface-panel: #1a1d20;
+  --surface-raised: #22262a;
+  --surface-sunken: #101214;
+  --surface-hover: #2a3034;
+  --surface-selected: #303a40;
 
-  --line: #222b35;
-  --line-strong: #2d3945;
+  --line: #2d3337;
+  --line-strong: #414a50;
 
-  --text: #e2e8ef;
-  --text-muted: #94a3b4;
-  --text-dim: #6a7887;
+  --text: #e4e6e6;
+  --text-muted: #a8afb3;
+  --text-dim: #828c92;
 
-  --accent: #22d3ee;
-  --accent-strong: #0b8ba8;
-  --accent-text: #041014;
+  --accent: #9bafb9;
+  --accent-strong: #6e858f;
+  --accent-text: #11191d;
 
   --severity-error: #ff6f6f;
   --severity-warning: #f2b33d;

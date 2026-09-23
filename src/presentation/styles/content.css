@@ -229,7 +229,7 @@
 
 .btn:hover:not(:disabled) {
   background: var(--surface-hover);
-  border-color: #3b4855;
+  border-color: var(--accent-strong);
 }
 
 .btn:active:not(:disabled) {
@@ -250,8 +250,8 @@
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #3fdcf4;
-  border-color: #3fdcf4;
+  background: #b5c4cb;
+  border-color: #b5c4cb;
 }
 
 .btn-primary:disabled {
@@ -846,6 +846,27 @@
   justify-content: flex-start;
   padding-top: 10px;
   border-top: 1px solid var(--line);
+}
+
+/* Editing actions sit together as compact, square-edged tools. */
+.asset-slot-actions .btn,
+.page-thumbnail-actions .btn,
+.page-thumbnail-detail-actions .btn {
+  border: 0;
+  border-radius: 0;
+  background: var(--surface-raised);
+}
+
+.asset-slot-actions .btn:hover:not(:disabled),
+.page-thumbnail-actions .btn:hover:not(:disabled),
+.page-thumbnail-detail-actions .btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.asset-slot-actions .btn-quiet,
+.page-thumbnail-actions .btn-quiet,
+.page-thumbnail-detail-actions .btn-quiet {
+  background: transparent;
 }
 
 .asset-slot-footer {
