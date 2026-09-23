@@ -11,7 +11,7 @@ import { fileSystemProjectStore } from '../infrastructure/project/file-system-pr
 import { fileSystemRecentProjects } from '../infrastructure/project/file-system-recent-projects';
 import { projectDocumentCodec } from '../infrastructure/project/project-document';
 import { themeXmlCodec } from '../infrastructure/theme-xml/theme-xml-codec';
-import { IPC_CHANNELS } from '../ipc/contract';
+import { IPC_CHANNELS, type SessionSnapshot } from '../ipc/contract';
 import { registerIpcHandlers } from './ipc/register-handlers';
 import { buildApplicationMenu } from './menu';
 import { createAppDialogs } from './app/dialogs';
@@ -95,6 +95,20 @@ const startApplication = (): void => {
     delayMs: DEFAULT_AUTOSAVE_DELAY_MS,
   });
 
+  let menuState = '';
+  const updateMenu = (snapshot: SessionSnapshot): void => {
+    const key = [
+      snapshot.theme !== null,
+      snapshot.theme?.canUndo === true,
+      snapshot.theme?.canRedo === true,
+      snapshot.recentProjects.length > 0,
+      snapshot.lastExport !== null,
+    ].join(':');
+    if (key === menuState) return;
+    menuState = key;
+    Menu.setApplicationMenu(buildApplicationMenu(getMainWindow, snapshot));
+  };
+
   const controller = createAppController({
     session,
     dialogs: createAppDialogs(getMainWindow),
@@ -104,6 +118,7 @@ const startApplication = (): void => {
     publish: (snapshot) => {
       autosave.noteChange();
       describeOpenDocument(snapshot.theme?.label ?? null, snapshot.theme?.isDirty ?? false);
+      updateMenu(snapshot);
       getMainWindow()?.webContents.send(IPC_CHANNELS.sessionChanged, snapshot);
     },
   });

@@ -1,5 +1,5 @@
 import { app, Menu, shell, type BrowserWindow, type MenuItemConstructorOptions } from 'electron';
-import { IPC_CHANNELS, type AppCommand } from '../ipc/contract';
+import { IPC_CHANNELS, type AppCommand, type SessionSnapshot } from '../ipc/contract';
 
 /**
  * The application menu.
@@ -9,9 +9,8 @@ import { IPC_CHANNELS, type AppCommand } from '../ipc/contract';
  * a button cannot come to mean different things, and the window stays the only place that
  * knows whether an action makes sense right now.
  *
- * "Theme" holds both halves of the work deliberately: a project is what somebody is editing,
- * and the exported theme is what they are editing it into. Opening the project is the plain
- * Open, because it is the one people will reach for every day.
+ * Availability follows the published session, so an enabled command always has a theme or
+ * history item to act on. Both menu and toolbar still send the same renderer commands.
  */
 
 const PROJECT_URL = 'https://github.com/jotadev27/VitaTheme';
@@ -27,20 +26,27 @@ const commandItem = (
   command: AppCommand,
   accelerator: string | undefined,
   windowOf: () => BrowserWindow | null,
+  enabled: boolean,
 ): MenuItemConstructorOptions => ({
   label,
+  enabled,
   ...(accelerator === undefined ? {} : { accelerator }),
   click: () => {
     send(windowOf(), command);
   },
 });
 
-export const buildApplicationMenu = (windowOf: () => BrowserWindow | null): Menu => {
+export const buildApplicationMenu = (
+  windowOf: () => BrowserWindow | null,
+  snapshot?: SessionSnapshot,
+): Menu => {
+  const theme = snapshot?.theme ?? null;
   const item = (
     label: string,
     command: AppCommand,
     accelerator?: string,
-  ): MenuItemConstructorOptions => commandItem(label, command, accelerator, windowOf);
+    enabled = true,
+  ): MenuItemConstructorOptions => commandItem(label, command, accelerator, windowOf, enabled);
 
   const appMenu: MenuItemConstructorOptions[] = isMac
     ? [
@@ -59,25 +65,45 @@ export const buildApplicationMenu = (windowOf: () => BrowserWindow | null): Menu
       ]
     : [];
 
+  const fileMenu: MenuItemConstructorOptions = {
+    label: 'File',
+    submenu: [
+      item('New…', 'new-theme', 'CmdOrCtrl+N'),
+      item('Open Project…', 'open-project', 'CmdOrCtrl+O'),
+      item('Open Theme Folder…', 'open-theme', 'CmdOrCtrl+Shift+O'),
+      item(
+        'Reopen Last Project',
+        'reopen-last-project',
+        'CmdOrCtrl+Shift+T',
+        (snapshot?.recentProjects.length ?? 0) > 0,
+      ),
+      { type: 'separator' },
+      item('Save', 'save-project', 'CmdOrCtrl+S', theme !== null),
+      item('Save As…', 'save-project-as', 'CmdOrCtrl+Shift+S', theme !== null),
+      { type: 'separator' },
+      item('Close Theme', 'close-theme', 'CmdOrCtrl+W', theme !== null),
+      { type: 'separator' },
+      {
+        label: 'Export Theme',
+        submenu: [
+          item('Export Folder…', 'export-folder', 'CmdOrCtrl+E', theme !== null),
+          item('Export ZIP…', 'export-archive', 'CmdOrCtrl+Shift+E', theme !== null),
+        ],
+      },
+      ...(isMac ? [] : [{ type: 'separator' as const }, { role: 'quit' as const }]),
+    ],
+  };
+
   const themeMenu: MenuItemConstructorOptions = {
     label: 'Theme',
     submenu: [
-      item('New Theme…', 'new-theme', 'CmdOrCtrl+N'),
-      item('Open Project…', 'open-project', 'CmdOrCtrl+O'),
-      item('Open Theme Folder…', 'open-theme', 'CmdOrCtrl+Shift+O'),
-      item('Reopen Last Project', 'reopen-last-project', 'CmdOrCtrl+Shift+T'),
-      { type: 'separator' },
-      item('Save', 'save-project', 'CmdOrCtrl+S'),
-      item('Save As…', 'save-project-as', 'CmdOrCtrl+Shift+S'),
-      { type: 'separator' },
-      item('Check Again', 'refresh-theme', 'CmdOrCtrl+R'),
-      { type: 'separator' },
-      item('Export as Folder…', 'export-folder', 'CmdOrCtrl+E'),
-      item('Export as ZIP Archive…', 'export-archive', 'CmdOrCtrl+Shift+E'),
-      item('Show Last Export', 'reveal-export'),
-      { type: 'separator' },
-      item('Close Theme', 'close-theme', 'CmdOrCtrl+W'),
-      ...(isMac ? [] : [{ type: 'separator' as const }, { role: 'quit' as const }]),
+      item('Check Again', 'refresh-theme', 'CmdOrCtrl+R', theme !== null),
+      item(
+        'Show Last Export',
+        'reveal-export',
+        undefined,
+        snapshot?.lastExport !== null && snapshot?.lastExport !== undefined,
+      ),
     ],
   };
 
@@ -87,8 +113,8 @@ export const buildApplicationMenu = (windowOf: () => BrowserWindow | null): Menu
       // The theme's own history, not the focused field's: this is a document editor, and
       // Cmd+Z is expected to take back the change that was made to the theme. Text fields
       // commit what was typed when they are left, so a change is a whole field at a time.
-      item('Undo', 'undo', 'CmdOrCtrl+Z'),
-      item('Redo', 'redo', isMac ? 'Cmd+Shift+Z' : 'Ctrl+Y'),
+      item('Undo', 'undo', 'CmdOrCtrl+Z', theme?.canUndo === true),
+      item('Redo', 'redo', isMac ? 'Cmd+Shift+Z' : 'Ctrl+Y', theme?.canRedo === true),
       { type: 'separator' },
       { role: 'cut' },
       { role: 'copy' },
@@ -100,7 +126,8 @@ export const buildApplicationMenu = (windowOf: () => BrowserWindow | null): Menu
   const viewMenu: MenuItemConstructorOptions = {
     label: 'View',
     submenu: [
-      item('Preview Theme', 'toggle-preview', 'CmdOrCtrl+P'),
+      item('Edit Workspace', 'show-edit', 'CmdOrCtrl+1', theme !== null),
+      item('Preview Theme', 'show-preview', 'CmdOrCtrl+2', theme !== null),
       { type: 'separator' },
       { role: 'resetZoom' },
       { role: 'zoomIn' },
@@ -138,5 +165,13 @@ export const buildApplicationMenu = (windowOf: () => BrowserWindow | null): Menu
     ],
   };
 
-  return Menu.buildFromTemplate([...appMenu, themeMenu, editMenu, viewMenu, windowMenu, helpMenu]);
+  return Menu.buildFromTemplate([
+    ...appMenu,
+    fileMenu,
+    editMenu,
+    viewMenu,
+    themeMenu,
+    windowMenu,
+    helpMenu,
+  ]);
 };
