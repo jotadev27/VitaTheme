@@ -415,19 +415,23 @@
 }
 
 .welcome-brand {
-  width: min(320px, 72vw);
+  width: min(360px, 78vw);
   margin: 0 auto 8px;
-  padding: 12px 14px;
-  overflow: hidden;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 14px 36px rgb(0 0 0 / 22%);
+  padding: 0;
 }
 
 .welcome-logo {
   display: block;
   width: 100%;
   height: auto;
+}
+
+.welcome-brand h1 {
+  margin: 8px 0 0;
+  color: var(--text);
+  font-size: 23px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
 }
 
 .welcome-actions {

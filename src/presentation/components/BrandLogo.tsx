@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import lockupUrl from '../../../assets/branding/vitatheme-lockup.png';
 import markUrl from '../../../assets/branding/vitatheme-mark.png';
+import transparentMarkUrl from '../../../assets/branding/vitatheme-mark-transparent.png';
 
 /**
  * The approved VitaTheme artwork, exposed in the two placements the interface needs.
@@ -13,13 +14,13 @@ export const BrandLogo = ({
   variant,
 }: {
   readonly className?: string;
-  readonly variant: 'lockup' | 'mark';
+  readonly variant: 'lockup' | 'mark' | 'transparent-mark';
 }): ReactElement => (
   <img
     className={className}
-    src={variant === 'lockup' ? lockupUrl : markUrl}
+    src={variant === 'lockup' ? lockupUrl : variant === 'mark' ? markUrl : transparentMarkUrl}
     alt={variant === 'lockup' ? 'VitaTheme' : ''}
-    aria-hidden={variant === 'mark' ? true : undefined}
+    aria-hidden={variant === 'lockup' ? undefined : true}
     draggable={false}
   />
 );

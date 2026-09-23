@@ -24,7 +24,8 @@ export const WelcomeView = ({
   <main className="welcome">
     <div className="welcome-intro">
       <div className="welcome-brand">
-        <BrandLogo className="welcome-logo" variant="lockup" />
+        <BrandLogo className="welcome-logo" variant="transparent-mark" />
+        <h1>VitaTheme</h1>
       </div>
       <p className="muted">
         Create, preview and export PS Vita themes. VitaTheme checks the artwork before it reaches

@@ -72,6 +72,13 @@ export const createMainWindow = ({
     minHeight: MINIMUM_HEIGHT,
     backgroundColor: WINDOW_BACKGROUND,
     title: app.getName(),
+    ...(process.platform === 'linux'
+      ? {
+          icon: app.isPackaged
+            ? join(process.resourcesPath, 'icon.png')
+            : join(app.getAppPath(), 'packaging', 'linux', '256x256.png'),
+        }
+      : {}),
     // The interface draws its own toolbar on macOS, where the system title bar would only
     // repeat what the toolbar already says.
     ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const } : {}),
