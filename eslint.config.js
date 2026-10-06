@@ -19,7 +19,22 @@ const forbid = (layers, message, extraPatterns = []) => ({
 });
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'out/**', 'release/**', 'coverage/**', 'node_modules/**'] },
+  {
+    ignores: [
+      'dist/**',
+      'out/**',
+      'build/**',
+      'release/**',
+      'installer/**',
+      'coverage/**',
+      'node_modules/**',
+      '.pnpm-store/**',
+      '.cache/**',
+      'scratch/**',
+      'tmp/**',
+      'temp/**',
+    ],
+  },
 
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,

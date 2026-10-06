@@ -23,6 +23,25 @@ coverage/
 .env
 .env.*
 !.env.example
+.npmrc
+.yarnrc.yml
+.netrc
+.git-credentials
+.ssh/
+.gnupg/
+.aws/
+.azure/
+.gcloud/
+credentials*.json
+secrets*.json
+*.local.*
+*.private.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
 
 # Editor and OS artifacts
 .DS_Store
@@ -40,9 +59,26 @@ ehthumbs.db
 # Tool caches
 .eslintcache
 .cache/
+.vite/
+.parcel-cache/
+.turbo/
+.npm/
+.electron/
+.electron-builder/
+playwright-report/
+test-results/
 
 # Logs
 *.log
+*.dmp
+*.dump
+*.har
+*.trace
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite-*
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
@@ -57,13 +93,51 @@ yarn-error.log*
 *.autosave
 *.vitatheme
 *.assets/
-*.at9
-*.AT9
+*.[Aa][Tt]9
 *.dmg
 *.exe
 *.AppImage
 *.asar
 *.zip
+*.7z
+*.rar
+*.tar
+*.gz
+*.msi
+*.msix
+*.sha256
+
+# Local photos and screenshots. Only deliberate product artwork is public.
+*.[Pp][Nn][Gg]
+*.[Jj][Pp][Gg]
+*.[Jj][Pp][Ee][Gg]
+*.[Ww][Ee][Bb][Pp]
+*.[Gg][Ii][Ff]
+*.[Hh][Ee][Ii][Cc]
+*.[Bb][Mm][Pp]
+*.[Ii][Cc][Oo]
+*.[Mm][Pp]3
+*.[Ww][Aa][Vv]
+*.[Ff][Ll][Aa][Cc]
+*.[Oo][Gg][Gg]
+*.[Mm]4[Aa]
+*.[Mm][Pp]4
+*.[Mm][Oo][Vv]
+*.psd
+*.xcf
+!assets/branding/*.png
+!docs/images/vitatheme-logo.png
+!docs/images/vitatheme-editor-windows.png
+!docs/images/vitatheme-preview-windows.png
+!docs/images/vitatheme-installer-windows.png
+!packaging/icon.png
+!packaging/icon.ico
+!packaging/linux/*x*.png
+!packaging/installer-artwork.png
+!packaging/installerHeader.bmp
+!packaging/installerSidebar.bmp
+# Local generation notes are not part of the application or its public documentation.
+packaging/installer-artwork.md
 
 # Agent and development-local files
 CLAUDE.md
@@ -72,6 +146,8 @@ AGENTS.md
 .codex/
 .agent/
 .agents/
+.cursor/
+.windsurf/
 scratch/
 scratchpad/
 tmp/

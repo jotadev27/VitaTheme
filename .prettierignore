@@ -2,5 +2,10 @@ node_modules/
 dist/
 out/
 release/
+installer/
+.pnpm-store/
+scratch/
+tmp/
+temp/
 coverage/
 pnpm-lock.yaml
