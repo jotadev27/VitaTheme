@@ -9,7 +9,7 @@ import type { ThemeAssetPath } from '@/domain/model/theme-asset-path';
 import { openThemeFolder } from '@/infrastructure/filesystem/file-system-theme-folder';
 import { MINIMAL_MANIFEST } from '../support/manifest-fixtures';
 import { assetPath } from '../support/theme-fixtures';
-import { pngHeaderBytes } from '../support/binary-fixtures';
+import { pngHeaderBytes, riffWaveBytes } from '../support/binary-fixtures';
 
 /**
  * Creating a symbolic link needs a privilege that is not granted by default on Windows, so
@@ -223,6 +223,21 @@ describe('inspectAsset', () => {
 describe('openAsset', () => {
   const writeAsset = (name: string, bytes: Uint8Array): Promise<void> =>
     writeFile(join(themeRoot, name), bytes);
+
+  it('inspects and copies AT9 with an inclusive loop-table size without modifying it', async () => {
+    const bytes = riffWaveBytes({ atrac9: true, loopMetadata: 'inclusive-size' });
+    await writeAsset('bgm.at9', bytes);
+    const folder = await openTheme();
+    expect(await folder.inspectAsset(assetPath('bgm.at9'))).toMatchObject({
+      status: 'found',
+      asset: { media: { kind: 'audio', format: 'at9' } },
+    });
+    const opened = await folder.openAsset(assetPath('bgm.at9'));
+    expect(opened.ok && opened.value).toEqual(bytes);
+
+    await writeAsset('bgm.at9', bytes.subarray(0, bytes.length - 1));
+    expect((await folder.openAsset(assetPath('bgm.at9'))).ok).toBe(false);
+  });
 
   it('reads a file the theme references, byte for byte', async () => {
     const contents = pngHeaderBytes({ width: 960, height: 512 });

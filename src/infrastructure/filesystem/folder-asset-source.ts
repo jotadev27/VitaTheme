@@ -8,6 +8,7 @@ import type { ThemeAssetPath } from '../../domain/model/theme-asset-path';
 import { failure, success, type Result } from '../../domain/shared/result';
 import type { AssetLookup } from '../../domain/validation/asset-catalog';
 import { identifyMedia, MEDIA_HEADER_BYTES } from '../media/media-probe';
+import { readAtrac9Container } from '../media/audio-header-reader';
 import { describeFileSystemError, readFileWithin, resolveWithinRoot } from './contained-path';
 
 /**
@@ -23,6 +24,7 @@ const inspectAsset = async (
   rootRealPath: string,
   path: ThemeAssetPath,
   container: string,
+  musicPaths: Set<ThemeAssetPath>,
 ): Promise<AssetLookup> => {
   const resolved = await resolveWithinRoot(rootRealPath, path);
 
@@ -47,9 +49,21 @@ const inspectAsset = async (
     }
 
     const header = await readFileWithin(resolved.absolutePath, MEDIA_HEADER_BYTES);
+    const media = identifyMedia(header);
+    if (media.kind === 'audio' && media.format === 'at9') {
+      if (stats.size > MAX_THEME_ASSET_BYTES)
+        return { status: 'unreadable', reason: 'the music file is too large' };
+      if (readAtrac9Container(await readFileWithin(resolved.absolutePath, stats.size)) === null) {
+        return {
+          status: 'unreadable',
+          reason: 'the AT9 container is malformed or contains unsupported data',
+        };
+      }
+      musicPaths.add(path);
+    }
     return {
       status: 'found',
-      asset: { byteSize: stats.size, media: identifyMedia(header) },
+      asset: { byteSize: stats.size, media },
     };
   } catch (error) {
     return { status: 'unreadable', reason: describeFileSystemError(error) };
@@ -59,15 +73,15 @@ const inspectAsset = async (
 /**
  * Reads an asset in full, for copying it into an export or into a project.
  *
- * This is the only place a whole theme file is loaded, which is why the size ceiling lives
- * here: validation never needs more than a header, so nothing else can be made to read a
- * large file. A file that grew beyond the ceiling since it was validated is refused with an
- * explanation rather than being allowed to exhaust memory.
+ * Images are identified by their header. AT9 audio also needs a complete container check,
+ * capped by the same file-size ceiling, both at inspection and immediately before copying.
+ * A file that grew or changed format since inspection is refused.
  */
 const openAsset = async (
   rootRealPath: string,
   path: ThemeAssetPath,
   container: string,
+  musicPaths: ReadonlySet<ThemeAssetPath>,
 ): Promise<Result<Uint8Array, ThemeAssetReadError>> => {
   const resolved = await resolveWithinRoot(rootRealPath, path);
 
@@ -106,7 +120,20 @@ const openAsset = async (
       });
     }
 
-    return success(await readFileWithin(resolved.absolutePath, stats.size));
+    const bytes = await readFileWithin(resolved.absolutePath, stats.size);
+    const media = identifyMedia(bytes.subarray(0, MEDIA_HEADER_BYTES));
+    if (
+      (musicPaths.has(path) ||
+        path.toLowerCase().endsWith('.at9') ||
+        (media.kind === 'audio' && media.format === 'at9')) &&
+      readAtrac9Container(bytes) === null
+    ) {
+      return failure({
+        code: 'unreadable',
+        message: `"${path}" is not a well-formed ATRAC9 file.`,
+      });
+    }
+    return success(bytes);
   } catch (error) {
     return failure({
       code: 'unreadable',
@@ -119,7 +146,10 @@ const openAsset = async (
  * `rootRealPath` must already be resolved: containment is decided against it, so a root
  * that still passes through a symbolic link would be the wrong thing to compare against.
  */
-export const folderAssetSource = (rootRealPath: string, container: string): ThemeAssetSource => ({
-  inspectAsset: (path) => inspectAsset(rootRealPath, path, container),
-  openAsset: (path) => openAsset(rootRealPath, path, container),
-});
+export const folderAssetSource = (rootRealPath: string, container: string): ThemeAssetSource => {
+  const musicPaths = new Set<ThemeAssetPath>();
+  return {
+    inspectAsset: (path) => inspectAsset(rootRealPath, path, container, musicPaths),
+    openAsset: (path) => openAsset(rootRealPath, path, container, musicPaths),
+  };
+};

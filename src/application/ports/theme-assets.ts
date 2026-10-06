@@ -32,8 +32,8 @@ export interface ThemeAssetReadError {
  *
  * Validation only needs to know *about* a file, which is what `inspectAsset` reports from a
  * container header. Exporting needs the bytes themselves, which is the only reason
- * `openAsset` exists — keeping them apart means validating an untrusted theme never reads a
- * whole file. Implementations are responsible for confining every access to the theme.
+ * `openAsset` exists. Images are identified from a header; ATRAC9 containers are checked in
+ * full within the asset-size limit. Implementations must confine every access to the theme.
  */
 export interface ThemeAssetSource {
   inspectAsset(path: ThemeAssetPath): Promise<AssetLookup>;

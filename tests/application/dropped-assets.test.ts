@@ -15,6 +15,7 @@ import { fileSystemExternalFiles } from '@/infrastructure/filesystem/file-system
 import { openThemeFolder } from '@/infrastructure/filesystem/file-system-theme-folder';
 import { themeXmlCodec } from '@/infrastructure/theme-xml/theme-xml-codec';
 import { jpegBytes, pngBytes } from '../support/image-fixtures';
+import { riffWaveBytes } from '../support/binary-fixtures';
 import { sessionAdapters } from '../support/project-fixtures';
 import { directoryLinkType } from '../support/file-system-capabilities';
 
@@ -86,14 +87,21 @@ describe('a picture dropped onto a slot', () => {
   });
 
   it('can be music, for the slot that takes music', async () => {
-    const path = join(workspace, 'not-really-audio.at9');
-    await writeFile(path, new Uint8Array(64));
+    const path = join(workspace, 'music.at9');
+    await writeFile(path, riffWaveBytes({ atrac9: true }));
 
     const dropped = await drop(path, { kind: 'backgroundMusic' });
 
-    // Accepted as a file and reported for what it is; the validator has the last word.
     expect(dropped.ok).toBe(true);
-    expect(dropped.ok && dropped.value.project.home.backgroundMusic).toBe('music.bin');
+    expect(dropped.ok && dropped.value.project.home.backgroundMusic).toBe('music.at9');
+  });
+
+  it('refuses a renamed executable dropped into the music slot', async () => {
+    const path = join(workspace, 'not-really-audio.at9');
+    await writeFile(path, new TextEncoder().encode('MZ executable data'));
+    const before = session.current();
+    expect((await drop(path, { kind: 'backgroundMusic' })).ok).toBe(false);
+    expect(session.current()).toBe(before);
   });
 
   it('makes one step to take back, exactly like choosing a file does', async () => {

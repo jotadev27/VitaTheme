@@ -119,6 +119,8 @@ export interface RiffWaveOptions {
   readonly channelCount?: number;
   /** Emits an odd-sized chunk before `fmt ` to exercise RIFF word alignment. */
   readonly withOddSizedLeadingChunk?: boolean;
+  /** Two observed size conventions for the optional `smpl` loop table. */
+  readonly loopMetadata?: 'standard' | 'inclusive-size';
 }
 
 export const riffWaveBytes = ({
@@ -126,7 +128,21 @@ export const riffWaveBytes = ({
   sampleRate = 48000,
   channelCount = 2,
   withOddSizedLeadingChunk = false,
+  loopMetadata,
 }: RiffWaveOptions): Uint8Array => {
+  const rates = [11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000];
+  const rateIndex = Math.max(0, rates.indexOf(sampleRate));
+  const channelIndex =
+    channelCount === 1
+      ? 0
+      : channelCount === 6
+        ? 3
+        : channelCount === 8
+          ? 4
+          : channelCount === 4
+            ? 5
+            : 2;
+  const config = 0xfe000000 | (rateIndex << 20) | (channelIndex << 17) | (95 << 5) | (2 << 3);
   const formatBody = atrac9
     ? [
         ...uint16LE(WAVE_FORMAT_EXTENSIBLE),
@@ -139,6 +155,9 @@ export const riffWaveBytes = ({
         ...uint16LE(1024),
         ...uint32LE(3),
         ...ATRAC9_SUBFORMAT_GUID,
+        ...uint32LE(1),
+        ...uint32BE(config),
+        ...uint32LE(0),
       ]
     : [
         ...uint16LE(WAVE_FORMAT_PCM),
@@ -159,8 +178,27 @@ export const riffWaveBytes = ({
     ...ascii('fmt '),
     ...uint32LE(formatBody.length),
     ...formatBody,
+    ...(atrac9
+      ? [...ascii('fact'), ...uint32LE(12), ...uint32LE(256), ...uint32LE(0), ...uint32LE(0)]
+      : []),
+    ...(loopMetadata === undefined
+      ? []
+      : [
+          ...ascii('smpl'),
+          ...uint32LE(60),
+          ...new Array<number>(28).fill(0),
+          ...uint32LE(1),
+          ...uint32LE(loopMetadata === 'inclusive-size' ? 24 : 0),
+          ...uint32LE(0),
+          ...uint32LE(0),
+          ...uint32LE(0),
+          ...uint32LE(255),
+          ...uint32LE(0),
+          ...uint32LE(0),
+        ]),
     ...ascii('data'),
-    ...uint32LE(0),
+    ...uint32LE(atrac9 ? 384 : 0),
+    ...(atrac9 ? new Array<number>(384).fill(0) : []),
   ];
 
   return Uint8Array.from([...ascii('RIFF'), ...uint32LE(body.length), ...body]);

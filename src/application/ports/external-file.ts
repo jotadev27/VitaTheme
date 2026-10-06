@@ -51,8 +51,8 @@ export const MAX_FOLDER_ENTRIES = 256;
 
 export interface ExternalFileStore {
   /**
-   * Examines a file the person chose: what it is, and how big. Reads a header, never the
-   * whole file, so choosing a file cannot be turned into loading one.
+   * Examines a file the person chose: what it is, and how big. Images need only a header;
+   * ATRAC9 also needs a bounded full-container check. Files above the asset limit are refused.
    */
   inspect(path: string): Promise<Result<ExternalFile, ExternalFileError>>;
   /**

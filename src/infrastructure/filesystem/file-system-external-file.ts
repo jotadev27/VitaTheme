@@ -10,6 +10,7 @@ import {
 } from '../../application/ports/external-file';
 import { failure, success } from '../../domain/shared/result';
 import { identifyMedia, MEDIA_HEADER_BYTES } from '../media/media-probe';
+import { readAtrac9Container } from '../media/audio-header-reader';
 import { describeFileSystemError, readFileWithin } from './contained-path';
 
 /**
@@ -49,100 +50,129 @@ const tooLarge = (): ExternalFileError => ({
     'beyond anything a theme uses. Check that it is the file you meant to choose.',
 });
 
-export const fileSystemExternalFiles = (): ExternalFileStore => ({
-  inspect: async (location) => {
-    let resolved: string;
-    try {
-      // Resolved once, here: from this point the application holds a path that no longer
-      // passes through a symbolic link.
-      resolved = await realpath(location);
-    } catch (error) {
-      return failure(readFailure(error));
-    }
-
-    try {
-      const stats = await stat(resolved);
-      if (!stats.isFile()) {
-        return failure({
-          code: 'not-a-file',
-          message: 'That is not a file, so it cannot be part of a theme.',
-        });
-      }
-      if (stats.size > MAX_THEME_ASSET_BYTES) {
-        return failure(tooLarge());
+export const fileSystemExternalFiles = (): ExternalFileStore => {
+  // Track audio by content, including files supplied under a different extension.
+  const musicReferences = new Set<string>();
+  return {
+    inspect: async (location) => {
+      let resolved: string;
+      try {
+        // Resolved once, here: from this point the application holds a path that no longer
+        // passes through a symbolic link.
+        resolved = await realpath(location);
+      } catch (error) {
+        return failure(readFailure(error));
       }
 
-      const header = await readFileWithin(resolved, MEDIA_HEADER_BYTES);
-      const file: ExternalFile = {
-        reference: resolved,
-        displayName: basename(resolved),
-        inspected: { byteSize: stats.size, media: identifyMedia(header) },
-      };
+      try {
+        const stats = await stat(resolved);
+        if (!stats.isFile()) {
+          return failure({
+            code: 'not-a-file',
+            message: 'That is not a file, so it cannot be part of a theme.',
+          });
+        }
+        if (stats.size > MAX_THEME_ASSET_BYTES) {
+          return failure(tooLarge());
+        }
 
-      return success(file);
-    } catch (error) {
-      return failure(readFailure(error));
-    }
-  },
+        const header = await readFileWithin(resolved, MEDIA_HEADER_BYTES);
+        const media = identifyMedia(header);
+        if (
+          media.kind === 'audio' &&
+          media.format === 'at9' &&
+          readAtrac9Container(await readFileWithin(resolved, stats.size)) === null
+        ) {
+          return failure({
+            code: 'unreadable',
+            message: 'This AT9 file is malformed or contains unsupported data.',
+          });
+        }
+        const file: ExternalFile = {
+          reference: resolved,
+          displayName: basename(resolved),
+          inspected: { byteSize: stats.size, media },
+        };
+        if (media.kind === 'audio' && media.format === 'at9') musicReferences.add(resolved);
 
-  listFolder: async (path) => {
-    let resolved: string;
-    try {
-      resolved = await realpath(path);
-    } catch (error) {
-      return failure(readFailure(error));
-    }
+        return success(file);
+      } catch (error) {
+        return failure(readFailure(error));
+      }
+    },
 
-    try {
-      const stats = await stat(resolved);
-      if (!stats.isDirectory()) {
-        return failure({
-          code: 'not-a-folder',
-          message: 'That is not a folder.',
-        });
+    listFolder: async (path) => {
+      let resolved: string;
+      try {
+        resolved = await realpath(path);
+      } catch (error) {
+        return failure(readFailure(error));
       }
 
-      const found = await readdir(resolved, { withFileTypes: true });
-      if (found.length > MAX_FOLDER_ENTRIES) {
-        return failure({
-          code: 'too-many-entries',
-          message:
-            `That folder holds more than ${String(MAX_FOLDER_ENTRIES)} items. A folder of ` +
-            'system icons holds seventeen, so this is unlikely to be the one you meant.',
-        });
+      try {
+        const stats = await stat(resolved);
+        if (!stats.isDirectory()) {
+          return failure({
+            code: 'not-a-folder',
+            message: 'That is not a folder.',
+          });
+        }
+
+        const found = await readdir(resolved, { withFileTypes: true });
+        if (found.length > MAX_FOLDER_ENTRIES) {
+          return failure({
+            code: 'too-many-entries',
+            message:
+              `That folder holds more than ${String(MAX_FOLDER_ENTRIES)} items. A folder of ` +
+              'system icons holds seventeen, so this is unlikely to be the one you meant.',
+          });
+        }
+
+        // Only ordinary files, only this level. A directory is not descended into and a link
+        // is not followed: either could lead anywhere, and neither is part of an icon set.
+        // The order is the platform's, so it is sorted here to keep the result predictable.
+        const entries: ExternalFolderEntry[] = found
+          .filter((entry) => entry.isFile())
+          .map((entry) => ({ name: entry.name, location: join(resolved, entry.name) }))
+          .sort((left, right) => left.name.localeCompare(right.name, 'en'));
+
+        return success(entries);
+      } catch (error) {
+        return failure(readFailure(error));
       }
+    },
 
-      // Only ordinary files, only this level. A directory is not descended into and a link
-      // is not followed: either could lead anywhere, and neither is part of an icon set.
-      // The order is the platform's, so it is sorted here to keep the result predictable.
-      const entries: ExternalFolderEntry[] = found
-        .filter((entry) => entry.isFile())
-        .map((entry) => ({ name: entry.name, location: join(resolved, entry.name) }))
-        .sort((left, right) => left.name.localeCompare(right.name, 'en'));
+    read: async (reference) => {
+      try {
+        const stats = await stat(reference);
+        if (!stats.isFile()) {
+          return failure({
+            code: 'not-a-file',
+            message: 'That is not a file, so it cannot be part of a theme.',
+          });
+        }
+        // Checked again rather than trusted: the file may have grown since it was chosen.
+        if (stats.size > MAX_THEME_ASSET_BYTES) {
+          return failure(tooLarge());
+        }
 
-      return success(entries);
-    } catch (error) {
-      return failure(readFailure(error));
-    }
-  },
-
-  read: async (reference) => {
-    try {
-      const stats = await stat(reference);
-      if (!stats.isFile()) {
-        return failure({
-          code: 'not-a-file',
-          message: 'That is not a file, so it cannot be part of a theme.',
-        });
+        const bytes = await readFileWithin(reference, stats.size);
+        const media = identifyMedia(bytes.subarray(0, MEDIA_HEADER_BYTES));
+        if (
+          (musicReferences.has(reference) ||
+            reference.toLowerCase().endsWith('.at9') ||
+            (media.kind === 'audio' && media.format === 'at9')) &&
+          readAtrac9Container(bytes) === null
+        ) {
+          return failure({
+            code: 'unreadable',
+            message: 'This AT9 file is malformed or contains unsupported data.',
+          });
+        }
+        return success(bytes);
+      } catch (error) {
+        return failure(readFailure(error));
       }
-      // Checked again rather than trusted: the file may have grown since it was chosen.
-      if (stats.size > MAX_THEME_ASSET_BYTES) {
-        return failure(tooLarge());
-      }
-
-      return success(await readFileWithin(reference, stats.size));
-    } catch (error) {
-      return failure(readFailure(error));
-    }
-  },
-});
+    },
+  };
+};

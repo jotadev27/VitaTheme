@@ -983,6 +983,16 @@ export const createThemeSession = ({
       }
 
       const file = inspected.value;
+      if (
+        slot.kind === 'backgroundMusic' &&
+        !(file.inspected.media.kind === 'audio' && file.inspected.media.format === 'at9')
+      ) {
+        return failure({
+          code: 'unusable-name',
+          message:
+            'Choose a valid ATRAC9 (.at9) file. MP3 conversion is not available in this build.',
+        });
+      }
       // Named after the slot and after what the file turned out to be — never after what it
       // was called, which is somebody else's text.
       const name = assetSlotFileName(slot, file.inspected.media);
@@ -1150,6 +1160,13 @@ export const createThemeSession = ({
         }
 
         const file = inspected.value;
+        if (
+          slot.kind === 'backgroundMusic' &&
+          !(file.inspected.media.kind === 'audio' && file.inspected.media.format === 'at9')
+        ) {
+          rejected.push({ slot, displayName, reason: 'Choose a valid ATRAC9 (.at9) file.' });
+          continue;
+        }
         const name = assetSlotFileName(slot, file.inspected.media);
         if (!name.ok) {
           rejected.push({

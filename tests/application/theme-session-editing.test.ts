@@ -236,15 +236,15 @@ describe('bringing a file into a theme', () => {
     expect(after.report.issues.map((issue) => issue.code)).toContain('asset.wrong-dimensions');
   });
 
-  it('accepts a file that is not what the slot needs, and reports why', async () => {
+  it('refuses WAV renamed to AT9 without changing the theme', async () => {
     await openExample();
     const wave = join(elsewhere, 'music.at9');
     await writeFile(wave, riffWaveBytes({ atrac9: false }));
 
-    const after = await assign({ kind: 'backgroundMusic' }, wave);
-
-    expect(after.project.home.backgroundMusic).toBe('music.wav');
-    expect(after.report.issues.map((issue) => issue.code)).toContain('asset.wrong-audio-format');
+    const before = session.current();
+    const after = await session.assignAsset({ kind: 'backgroundMusic' }, wave);
+    expect(after.ok).toBe(false);
+    expect(session.current()).toBe(before);
   });
 
   it('assigns, replaces and clears valid AT9 music without changing the source files', async () => {

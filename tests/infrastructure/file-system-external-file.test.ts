@@ -83,6 +83,23 @@ describe('examining a file', () => {
     expect((await inspected(at('music.at9'))).inspected.media).toMatchObject({ kind: 'image' });
   });
 
+  it('refuses a corrupt AT9 and a file replaced after inspection', async () => {
+    const bytes = riffWaveBytes({ atrac9: true });
+    await writeFile(at('music.at9'), bytes.subarray(0, bytes.length - 1));
+    expect((await files.inspect(at('music.at9'))).ok).toBe(false);
+    await writeFile(at('music.at9'), bytes);
+    const file = await inspected(at('music.at9'));
+    await writeFile(at('music.at9'), 'MZ renamed executable');
+    expect((await files.read(file.reference)).ok).toBe(false);
+  });
+
+  it('rechecks music identified by content even under a different extension', async () => {
+    await writeFile(at('music.bin'), riffWaveBytes({ atrac9: true }));
+    const file = await inspected(at('music.bin'));
+    await writeFile(at('music.bin'), 'MZ renamed executable');
+    expect((await files.read(file.reference)).ok).toBe(false);
+  });
+
   it('says so when a file is nothing it recognises', async () => {
     await writeFile(at('notes.txt'), 'just some text');
 
