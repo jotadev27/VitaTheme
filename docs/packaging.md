@@ -5,11 +5,12 @@ application is put together, see [architecture.md](./architecture.md).
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) 20.11 or later
+- [Node.js](https://nodejs.org/) 22.12 or later
 - [pnpm](https://pnpm.io/)
 
-The first build downloads the Electron runtime, and packaging downloads the helper binaries
-electron-builder uses to produce installers. Both are build-time downloads and are cached
+The first `pnpm run dev` or `pnpm start` downloads the Electron runtime if it is missing.
+Packaging also downloads the runtime and the helper binaries electron-builder uses to produce
+installers. These are development/build-time downloads and are cached
 afterwards; **the application itself never connects to anything at runtime.**
 
 ## Everyday commands
@@ -33,6 +34,17 @@ pnpm run verify:package  # read the packaged application back and check what it 
 ```
 
 Artifacts appear in `release/`, which is not kept in version control.
+
+For the English Windows setup wizard (welcome, embedded MIT terms, destination, installation
+and finish), run `pnpm run package:windows`. The standalone installer appears in `installer/`.
+It includes the application and needs no runtime download. Verify it with
+`pnpm run verify:package windows installer`. To regenerate the bundled sidebar and header
+BMPs from their artwork, run `node scripts/make-installer-artwork.mjs`.
+
+For the Windows portable executable, run `pnpm run package:portable`. It also appears in
+`installer/` and runs without installation. It uses the local application data folder for
+recent projects and recovery. Release executables, checksums and local staging files are
+excluded from Git; attach the intended files to GitHub Releases instead.
 
 `pnpm run icon` regenerates platform resources from the approved master at
 `assets/branding/vitatheme-logo.png`. macOS keeps its white-backed `packaging/icon.png`.
@@ -88,12 +100,12 @@ npx @electron/asar list release/mac-*/VitaTheme.app/Contents/Resources/app.asar
 
 ## Platforms
 
-| Platform    | Application builds | Installer builds | Run and exercised | Ships as    |
-| ----------- | ------------------ | ---------------- | ----------------- | ----------- |
-| macOS arm64 | Yes                | Yes              | **Yes**           | `.dmg`      |
-| macOS x64   | Yes                | Yes              | No                | `.dmg`      |
-| Windows x64 | Yes                | On Windows       | No                | NSIS `.exe` |
-| Linux x64   | Yes                | On Linux         | No                | AppImage    |
+| Platform    | Application builds | Installer builds | Run and exercised | Ships as                  |
+| ----------- | ------------------ | ---------------- | ----------------- | ------------------------- |
+| macOS arm64 | Yes                | Yes              | **Yes**           | `.dmg`                    |
+| macOS x64   | Yes                | Yes              | No                | `.dmg`                    |
+| Windows x64 | Yes                | Yes, on Windows  | UI checked        | Setup and portable `.exe` |
+| Linux x64   | Yes                | On Linux         | No                | AppImage                  |
 
 "Application builds" means electron-builder produces the program itself — the executable,
 the archive, the integrity hash and the fuses — and `pnpm run verify:package` reads it back
@@ -108,11 +120,13 @@ AppImage tool both fail with `spawn Unknown system error -86`, which is the kern
 a binary of the wrong architecture. So the installers are built where they belong: on a
 machine of that platform.
 
-Only macOS arm64 has been **run**. The packaged application was launched and exercised —
+The macOS arm64 packaged application was launched and exercised —
 opening a project, dragging artwork in, converting a picture, previewing, undoing, redoing,
 saving, exporting a folder and a ZIP archive, and quitting — and its security properties were
-checked while it ran. Windows and Linux are configured, build, and verify structurally, but
-nobody has run them, so they are not claimed as supported.
+checked while it ran. Windows x64 setup and portable executables are built for v1.2.0;
+the packaged archive passes all eleven verification checks, and the English installer
+wizard and Windows editor interface were reviewed. Installation and uninstallation are
+not covered by the automated package checks. Linux runtime testing remains pending.
 
 ## macOS: unsigned builds
 
@@ -191,7 +205,7 @@ Two capabilities are deliberately left as Electron ships them:
 
 ## Version
 
-The current version is `1.1.0` in `package.json`. Installer filenames derive from that
+The current version is `1.2.0` in `package.json`. Installer filenames derive from that
 version; see [release.md](./release.md).
 
 ## Reproducibility

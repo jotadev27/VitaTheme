@@ -9,12 +9,13 @@ to look for a new version.
 
 ## What a release is
 
-Four artifacts, one per platform the project builds for:
+Artifacts for the platforms being released:
 
 ```text
 VitaTheme-<version>-macOS-arm64.dmg         macOS, Apple Silicon
 VitaTheme-<version>-macOS-x64.dmg           macOS, Intel
 VitaTheme-<version>-Windows-x64-Setup.exe   Windows
+VitaTheme-<version>-Windows-x64-Portable.exe Windows, no installation
 VitaTheme-<version>-x86_64.AppImage  Linux
 ```
 
@@ -48,6 +49,20 @@ dependency tree, and that nothing in the package names the machine that built it
 Build the Windows installer on Windows, verify the packaged app, then copy the installer to
 local release staging for review and testing.
 
+For Windows v1.2.0, build both release executables into the ignored `installer/` folder:
+
+```sh
+pnpm run package:windows
+pnpm run package:portable
+pnpm run verify:package windows installer
+```
+
+Only the executables and their checksums are needed as Windows download assets. Do not
+upload `builder-debug.yml`, `builder-effective-config.yaml`, the unpacked application
+folder or local staging data. There is no automatic updater, so `.blockmap` files are
+not needed. Use [v1.2.0.md](./releases/v1.2.0.md) as the English release description and
+the reviewed product screenshots in `docs/images/` as release illustrations.
+
 ## Checking before publishing
 
 Build the artifacts, then — on at least the platform you can — **install and run what you are
@@ -69,6 +84,17 @@ shasum -a 256 release/VitaTheme-*.dmg release/VitaTheme-*.exe release/VitaTheme-
 ```
 
 Publish those checksums with the release and in the release notes.
+
+On Windows PowerShell, calculate the hashes after the final build:
+
+```powershell
+Get-FileHash installer/VitaTheme-1.2.0-Windows-x64-Setup.exe -Algorithm SHA256
+Get-FileHash installer/VitaTheme-1.2.0-Windows-x64-Portable.exe -Algorithm SHA256
+```
+
+Write `SHA256SUMS.txt` with each lowercase digest, two spaces and its executable's
+filename. Upload that file beside both executables. After downloading, compare the
+output of `Get-FileHash` with the published digest; the filename alone is not a check.
 
 ## Publishing
 
