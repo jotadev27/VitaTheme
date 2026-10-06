@@ -50,7 +50,7 @@ describe('LiveArea page thumbnail controls', () => {
     expect(page).toContain('class="asset-slot asset-slot-featured"');
     expect(page.match(/class="asset-slot(?:\s|")/g)).toHaveLength(1);
     expect(page).toContain('class="page-thumbnail"');
-    expect(page).toContain('Generated automatically');
+    expect(page).toContain('From background');
     expect(page).toContain('360 × 192');
     expect(page).toContain('Customize…');
     expect(page).not.toContain('page-thumbnail-details');
@@ -60,7 +60,7 @@ describe('LiveArea page thumbnail controls', () => {
   it('makes a custom override obvious without rendering a second card', () => {
     const page = artwork(markup('my-thumbnail.png', false));
     expect(page.match(/class="asset-slot(?:\s|")/g)).toHaveLength(1);
-    expect(page).toContain('Custom override');
+    expect(page).toContain('Custom');
     expect(page).toContain('Customize…');
     expect(page).toContain('Use generated thumbnail');
     expect(page).not.toContain('page-thumbnail-details');

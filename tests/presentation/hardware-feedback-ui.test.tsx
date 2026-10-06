@@ -98,7 +98,8 @@ describe('hardware-feedback editor surfaces', () => {
     const music = renderToStaticMarkup(createElement(BackgroundMusicControl, { theme, actions }));
     const home = renderToStaticMarkup(createElement(HomeSection, { theme, actions, page: 0 }));
     expect(music).toContain('Console default');
-    expect(music).toContain('No music file is included');
+    expect(music).toContain('Uses the console');
+    expect(music).not.toContain('None · console setting');
     expect(home).toContain('Provided by the PS Vita');
     expect(home).toContain('Console default');
   });
@@ -111,6 +112,6 @@ describe('hardware-feedback editor surfaces', () => {
     expect(html).toContain('music.at9');
     expect(html).toContain('AT9');
     expect(html).toContain('Replace');
-    expect(html).toContain('Clear · use console default');
+    expect(html).toContain('Clear');
   });
 });

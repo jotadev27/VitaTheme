@@ -40,8 +40,10 @@
   --dock-width: 360px;
 
   --font-ui:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Arial,
+    sans-serif;
+  --font-display: Bahnschrift, 'Avenir Next', 'Trebuchet MS', sans-serif;
+  --font-mono: Consolas, 'SF Mono', Menlo, ui-monospace, monospace;
 
   --text-size: 13px;
   --text-size-small: 11.5px;

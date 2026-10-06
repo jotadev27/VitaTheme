@@ -58,9 +58,9 @@ const ThumbnailDetails = ({
       <div className="page-thumbnail-detail-body">
         <span className="page-thumbnail-detail-source">
           {source === 'custom'
-            ? 'Custom override'
+            ? 'Custom'
             : source === 'generated'
-              ? 'Generated from background'
+              ? 'From background'
               : 'No thumbnail yet'}
         </span>
         {path === null ? null : (
@@ -141,9 +141,9 @@ const PageThumbnailControl = ({
           <span className="page-thumbnail-label">Thumbnail</span>
           <span className="page-thumbnail-status">
             {source === 'custom'
-              ? 'Custom override'
+              ? 'Custom'
               : source === 'generated'
-                ? 'Generated automatically'
+                ? 'From background'
                 : 'Not set'}
             {' · '}
             {formatPixels(THUMBNAIL.width, THUMBNAIL.height)}
@@ -226,7 +226,6 @@ const PageEditor = ({
         <ColorField
           label="Application label colour"
           value={current.bubbleFontColor}
-          hint="The text under each application bubble."
           onCommit={(value) => {
             void actions.applyEdit({
               kind: 'set-color',
@@ -247,7 +246,7 @@ const PageEditor = ({
           value={current.waveType}
           // Matches `WAVE_TYPE_IS_DOCUMENTED` in the format layer, which records that no
           // mapping of these values is known. The two are meant to change together.
-          hint="The stock animation seen while swiping. No list of values is documented, so whatever a theme uses is kept as it is."
+          hint="Swipe animation. Keep the original value if unsure."
 
           onCommit={(value) => {
             void actions.applyEdit({ kind: 'set-wave-type', page, value });
@@ -359,9 +358,8 @@ export const HomeSection = ({
       {incompatible > 0 ? (
         <div className="bulk-convert-prompt">
           <span>
-            {String(incompatible)} image{incompatible === 1 ? '' : 's'} across the theme can be
-            converted to the required PNG format. Use Convert to PNG in each asset slot to position
-            it.
+            {String(incompatible)} image{incompatible === 1 ? '' : 's'} need conversion. Choose
+            Convert to PNG on an image.
           </span>
         </div>
       ) : null}
@@ -386,15 +384,12 @@ export const HomeSection = ({
               title="Remove every theme replacement so the PS Vita provides its own system icons"
               onClick={() => void actions.applyEdit({ kind: 'restore-system-icons' })}
             >
-              Restore all console defaults
+              Reset icons
             </button>
           </div>
         }
       >
-        <p className="panel-lead">
-          An icon you do not replace stays as the console draws it. The marks below stand for those
-          and are not part of the exported theme.
-        </p>
+        <p className="panel-lead">Unchanged icons use console defaults.</p>
         <div className="slot-grid">
           {allHomeAppSlots().map((slot) => (
             <AssetSlotControl
@@ -406,7 +401,7 @@ export const HomeSection = ({
               assets={theme.assets}
               builtInDefault={{
                 artwork: <SystemIconArtwork slot={slot.id} />,
-                summary: 'Provided by the PS Vita — not exported with the theme',
+                summary: 'Provided by the PS Vita',
               }}
               onAssign={(target) => void actions.assignAsset(target)}
               onClear={(target) => void actions.clearAsset(target)}

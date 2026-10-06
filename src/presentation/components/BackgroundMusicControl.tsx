@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 import type { ThemeSnapshot } from '@/ipc';
 import { formatByteSize } from '../format';
 import type { EditorActions } from '../state/use-editor';
@@ -16,6 +16,16 @@ export const BackgroundMusicControl = ({
   const summary = theme.assets.find((candidate) => candidate.path === path);
   const found = summary?.lookup.status === 'found' ? summary.lookup.asset : null;
   const issues = theme.report.issues.filter((issue) => issue.location === 'home.backgroundMusic');
+  const [importing, setImporting] = useState(false);
+  const chooseMusic = async (): Promise<void> => {
+    if (importing) return;
+    setImporting(true);
+    try {
+      await actions.assignAsset({ kind: 'backgroundMusic' });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   return (
     <div className="music-control">
@@ -23,15 +33,8 @@ export const BackgroundMusicControl = ({
         <button
           type="button"
           className="music-choice"
-          disabled
-          title="A theme cannot switch off the PS Vita System Music setting; choose None on the console."
-        >
-          None · console setting
-        </button>
-        <button
-          type="button"
-          className="music-choice"
           aria-pressed={path === null}
+          disabled={importing}
           onClick={() => {
             if (path !== null) void actions.clearAsset({ kind: 'backgroundMusic' });
           }}
@@ -42,22 +45,17 @@ export const BackgroundMusicControl = ({
           type="button"
           className="music-choice"
           aria-pressed={path !== null}
-          onClick={() => void actions.assignAsset({ kind: 'backgroundMusic' })}
+          disabled={importing}
+          onClick={() => void chooseMusic()}
         >
-          Custom AT9…
+          {importing ? 'Importing…' : path === null ? 'Choose music…' : 'Replace music…'}
         </button>
       </div>
 
       {path === null ? (
-        <p className="music-explanation">
-          No music file is included in this theme. The PS Vita’s System Music setting controls
-          whether its own music plays; turn that setting off on the console for no music.
-        </p>
+        <p className="music-explanation">Uses the console’s music setting.</p>
       ) : (
         <div className="music-custom">
-          <span className="asset-source" data-source="custom">
-            Custom
-          </span>
           <strong className="asset-path selectable" title={path}>
             {path}
           </strong>
@@ -69,17 +67,11 @@ export const BackgroundMusicControl = ({
           <div className="music-actions">
             <button
               type="button"
-              className="btn btn-small"
-              onClick={() => void actions.assignAsset({ kind: 'backgroundMusic' })}
-            >
-              Replace…
-            </button>
-            <button
-              type="button"
               className="btn btn-quiet btn-small"
+              disabled={importing}
               onClick={() => void actions.clearAsset({ kind: 'backgroundMusic' })}
             >
-              Clear · use console default
+              Clear
             </button>
           </div>
           {issues.map((issue) => (
@@ -94,10 +86,7 @@ export const BackgroundMusicControl = ({
         </div>
       )}
 
-      <p className="music-import-note">
-        Choose an existing ATRAC9 .at9 file. WAV, MP3, FLAC and OGG cannot be converted to AT9
-        inside VitaTheme; renaming an audio file does not encode it.
-      </p>
+      <p className="music-import-note">ATRAC9 (.at9)</p>
     </div>
   );
 };

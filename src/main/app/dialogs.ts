@@ -145,7 +145,7 @@ export const createAppDialogs = (windowOf: () => BrowserWindow | null): AppDialo
       title: expects === 'audio' ? 'Choose background music' : 'Choose an image',
       message:
         expects === 'audio'
-          ? 'Choose an existing ATRAC9 .at9 file; source audio cannot be encoded here'
+          ? 'Choose background music'
           : 'PNG, JPEG, BMP and GIF can be converted to fit the selected slot',
       buttonLabel: 'Use file',
       filters: ASSET_FILTERS[expects],

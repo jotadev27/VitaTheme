@@ -190,10 +190,7 @@ const PreviewSlots = ({
         )
       }
     >
-      <p className="panel-lead">
-        Generate these from the theme’s artwork, then regenerate them after artwork changes. Custom
-        previews are never replaced automatically.
-      </p>
+      <p className="panel-lead">Generate from your artwork or choose your own images.</p>
       <div className="slot-list">
         {THEME_PREVIEW_KINDS.map((kind) => (
           <AssetSlotControl
@@ -258,7 +255,7 @@ export const OverviewSection = ({
             label="Version"
             value={formatContentVersion(metadata.contentVersion)}
             maxLength={5}
-            hint="Two digits, a dot and two digits. The console refuses any other form."
+            hint="Format: 01.00"
             onCommit={(value) => {
               void actions.applyEdit({ kind: 'set-content-version', value });
             }}

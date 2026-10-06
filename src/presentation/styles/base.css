@@ -26,6 +26,7 @@ h1,
 h2,
 h3 {
   margin: 0;
+  font-family: var(--font-display);
   font-weight: 600;
 }
 
@@ -72,6 +73,7 @@ img {
 }
 
 .numeric {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 

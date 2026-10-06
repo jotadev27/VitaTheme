@@ -27,7 +27,7 @@ const expectedOf = (slot: ThemeAssetSlot): string => {
   }
 
   const spec = imageAssetSpec(usage);
-  return `Target ${formatPixels(spec.width, spec.height)} PNG · imports PNG, JPEG, BMP or GIF`;
+  return `${formatPixels(spec.width, spec.height)} PNG`;
 };
 
 /**
