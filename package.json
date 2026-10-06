@@ -1,6 +1,6 @@
 {
   "name": "vitatheme",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Open-source desktop application for creating, editing, previewing, validating and exporting custom PlayStation Vita themes.",
   "license": "MIT",
@@ -26,6 +26,8 @@
     "build": "electron-vite build",
     "start": "install-electron && electron-vite preview",
     "package": "pnpm run build && electron-builder",
+    "package:windows": "pnpm run build && electron-builder --win nsis --x64 --publish never -c.directories.output=installer",
+    "package:portable": "pnpm run build && electron-builder --win portable --x64 --publish never -c.directories.output=installer",
     "package:dir": "pnpm run build && electron-builder --dir",
     "icon": "node scripts/make-icon.mjs",
     "verify:package": "node scripts/verify-package.mjs"

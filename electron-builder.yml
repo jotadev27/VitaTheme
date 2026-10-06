@@ -139,7 +139,7 @@ win:
   # folder, so it never needs to be run as an administrator and never asks.
   requestedExecutionLevel: asInvoker
   artifactName: ${productName}-${version}-Windows-${arch}-Setup.${ext}
-  # Not verified on Windows from this repository yet — see docs/packaging.md.
+  # The packaged Windows application and English wizard are verified locally.
 
 nsis:
   oneClick: false
@@ -148,6 +148,12 @@ nsis:
   language: '1033'
   multiLanguageInstaller: false
   license: license.txt
+  include: packaging/installer.nsh
+  installerIcon: packaging/icon.ico
+  uninstallerIcon: packaging/icon.ico
+  installerHeader: packaging/installerHeader.bmp
+  installerSidebar: packaging/installerSidebar.bmp
+  uninstallerSidebar: packaging/installerSidebar.bmp
   # No start-up entries, no services, no background anything: it is a desktop application.
   createDesktopShortcut: true
   createStartMenuShortcut: true
@@ -155,6 +161,10 @@ nsis:
   # application-data folder is the list of recent projects and any unsaved work waiting to be
   # recovered, and neither is ours to delete because somebody uninstalled a version.
   deleteAppDataOnUninstall: false
+
+portable:
+  requestExecutionLevel: user
+  artifactName: ${productName}-${version}-Windows-${arch}-Portable.${ext}
 
 linux:
   icon: packaging/linux

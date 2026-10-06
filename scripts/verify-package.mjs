@@ -130,14 +130,15 @@ if (platform === undefined) {
   fail(`Nothing is packaged for ${targetPlatform}.`);
 }
 
-const releaseDirectory = join(process.cwd(), 'release');
+const outputDirectory = process.argv[3] ?? 'release';
+const releaseDirectory = join(process.cwd(), outputDirectory);
 const packaged = platform.candidates
   .map((candidate) => join(releaseDirectory, candidate))
   .find((candidate) => existsSync(candidate));
 
 if (packaged === undefined) {
   fail(
-    `No packaged application in release/. Run "pnpm run package:dir" first.\n` +
+    `No packaged application in ${outputDirectory}/. Run "pnpm run package:dir" first.\n` +
       `Looked for: ${platform.candidates.join(', ')}`,
   );
 }
@@ -158,7 +159,8 @@ const archive = platform.archive(packaged);
 check('the application is packaged as one archive', existsSync(archive));
 
 if (existsSync(archive)) {
-  const contents = listPackage(archive, {});
+  // asar reports paths using the host separator, even for cross-built artifacts.
+  const contents = listPackage(archive, {}).map((entry) => entry.replaceAll('\\', '/'));
   const unexpected = contents.filter((entry) => !ALLOWED_IN_ARCHIVE.test(entry));
   check(
     'the archive holds the built application and nothing else',
