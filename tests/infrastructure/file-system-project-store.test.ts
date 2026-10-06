@@ -8,6 +8,7 @@ import type { ThemeAssetPath } from '@/domain/model/theme-asset-path';
 import { failure, success } from '@/domain/shared/result';
 import { fileSystemProjectStore } from '@/infrastructure/project/file-system-project-store';
 import { assetPath } from '../support/theme-fixtures';
+import { canCreateFileSymlinks, directoryLinkType } from '../support/file-system-capabilities';
 
 /**
  * Projects on a real filesystem.
@@ -158,17 +159,21 @@ describe('saving a project', () => {
     expect(written.ok || written.error.message).not.toContain('export');
   });
 
-  it('says where it could not write without saying where anything is', async () => {
-    const readOnly = join(workspace, 'locked');
-    await mkdir(readOnly);
-    await chmod(readOnly, 0o500);
+  // chmod cannot deny writes to a Windows directory, and root bypasses POSIX permissions.
+  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+    'says where it could not write without saying where anything is',
+    async () => {
+      const readOnly = join(workspace, 'locked');
+      await mkdir(readOnly);
+      await chmod(readOnly, 0o500);
 
-    const written = await store.write(join(readOnly, 'Theme.vitatheme'), PROJECT_TEXT, null);
-    await chmod(readOnly, 0o700);
+      const written = await store.write(join(readOnly, 'Theme.vitatheme'), PROJECT_TEXT, null);
+      await chmod(readOnly, 0o700);
 
-    expect(written.ok).toBe(false);
-    expect(written.ok || written.error.message).not.toContain(workspace);
-  });
+      expect(written.ok).toBe(false);
+      expect(written.ok || written.error.message).not.toContain(workspace);
+    },
+  );
 });
 
 describe('opening a project', () => {
@@ -231,7 +236,7 @@ describe('a project that came from somewhere else', () => {
     await mkdir(elsewhere);
     await writeFile(join(elsewhere, 'background-1.png'), 'not the project’s to read');
     await writeFile(projectPath, PROJECT_TEXT);
-    await symlink(elsewhere, assetsPath);
+    await symlink(elsewhere, assetsPath, directoryLinkType);
 
     const opened = await store.read(projectPath);
 
@@ -243,21 +248,24 @@ describe('a project that came from somewhere else', () => {
     expect(lookup?.status).toBe('missing');
   });
 
-  it('refuses to read a file inside the folder that leads out of it', async () => {
-    const secret = join(workspace, 'secret.png');
-    await writeFile(secret, 'not the project’s to read');
-    await writeFile(projectPath, PROJECT_TEXT);
-    await mkdir(assetsPath);
-    await symlink(secret, join(assetsPath, 'background-1.png'));
+  it.skipIf(!canCreateFileSymlinks)(
+    'refuses to read a file inside the folder that leads out of it',
+    async () => {
+      const secret = join(workspace, 'secret.png');
+      await writeFile(secret, 'not the project’s to read');
+      await writeFile(projectPath, PROJECT_TEXT);
+      await mkdir(assetsPath);
+      await symlink(secret, join(assetsPath, 'background-1.png'));
 
-    const opened = await store.read(projectPath);
-    const asset = opened.ok
-      ? await opened.value.assets.openAsset(assetPath('background-1.png'))
-      : null;
+      const opened = await store.read(projectPath);
+      const asset = opened.ok
+        ? await opened.value.assets.openAsset(assetPath('background-1.png'))
+        : null;
 
-    expect(asset?.ok).toBe(false);
-    expect(asset?.ok === false && asset.error.code).toBe('escapes-theme');
-  });
+      expect(asset?.ok).toBe(false);
+      expect(asset?.ok === false && asset.error.code).toBe('escapes-theme');
+    },
+  );
 });
 
 describe('work in progress', () => {

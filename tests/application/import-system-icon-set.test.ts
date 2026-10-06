@@ -18,6 +18,7 @@ import { openThemeFolder } from '@/infrastructure/filesystem/file-system-theme-f
 import { themeXmlCodec } from '@/infrastructure/theme-xml/theme-xml-codec';
 import { jpegBytes, pngBytes } from '../support/image-fixtures';
 import { sessionAdapters } from '../support/project-fixtures';
+import { canCreateFileSymlinks } from '../support/file-system-capabilities';
 
 /**
  * A folder of system icons somebody chose.
@@ -267,7 +268,7 @@ describe('a folder that is not what it claims', () => {
     expect(themedSystemIcons(session.current()!.project)).toEqual([]);
   });
 
-  it('does not follow a link out of the folder', async () => {
+  it.skipIf(!canCreateFileSymlinks)('does not follow a link out of the folder', async () => {
     const outside = join(workspace, 'elsewhere.png');
     await writeFile(outside, await pngBytes({ width: 128, height: 128 }));
     await symlink(outside, join(folder, 'icon_web.png'));

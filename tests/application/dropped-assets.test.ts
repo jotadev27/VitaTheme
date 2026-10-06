@@ -16,6 +16,7 @@ import { openThemeFolder } from '@/infrastructure/filesystem/file-system-theme-f
 import { themeXmlCodec } from '@/infrastructure/theme-xml/theme-xml-codec';
 import { jpegBytes, pngBytes } from '../support/image-fixtures';
 import { sessionAdapters } from '../support/project-fixtures';
+import { directoryLinkType } from '../support/file-system-capabilities';
 
 /**
  * A file that arrived by being dragged onto the application.
@@ -156,7 +157,7 @@ describe('a drop that should not be honoured', () => {
     const folder = join(workspace, 'somewhere');
     await mkdir(folder);
     const link = join(workspace, 'looks-like-a-file.png');
-    await symlink(folder, link);
+    await symlink(folder, link, directoryLinkType);
 
     const dropped = await drop(link);
 
