@@ -22,7 +22,7 @@ together — they are meant to stay in step.
 
 ## Getting set up
 
-Requires Node.js 20.11 or later and pnpm.
+Requires Node.js 22.12 or later and pnpm.
 
 ```sh
 pnpm install

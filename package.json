@@ -9,7 +9,7 @@
   "type": "module",
   "main": "out/main/index.js",
   "engines": {
-    "node": ">=20.11"
+    "node": ">=22.12"
   },
   "packageManager": "pnpm@11.24.0",
   "scripts": {
@@ -22,9 +22,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run test",
-    "dev": "electron-vite dev",
+    "dev": "install-electron && electron-vite dev",
     "build": "electron-vite build",
-    "start": "electron-vite preview",
+    "start": "install-electron && electron-vite preview",
     "package": "pnpm run build && electron-builder",
     "package:dir": "pnpm run build && electron-builder --dir",
     "icon": "node scripts/make-icon.mjs",

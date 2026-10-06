@@ -1,5 +1,6 @@
 # Package build scripts are opt-in. esbuild ships a platform-specific binary that Vitest
-# needs, and Electron downloads the desktop runtime the application is launched with.
+# needs. Electron 42+ has no postinstall script; our dev/start commands call its
+# install-electron CLI to download the desktop runtime when it is missing.
 #
 # `electron-winstaller` arrives with electron-builder and fetches Squirrel.Windows, an
 # installer format this project does not use — VitaTheme builds an NSIS installer instead.
