@@ -127,14 +127,21 @@ describe('exporting a theme folder', () => {
     expect(await filesUnder(destination)).toEqual(expectedFiles());
   });
 
-  it('produces a theme that validates exactly as the one it came from', async () => {
+  it('preserves theme values and validation when making the clock alpha explicit', async () => {
     const before = await validateThemeFolder({ folder: await openSource(), codec });
     await exportToFolder();
     const after = await validateThemeFolder({ folder: await openSource(destination), codec });
 
     expect(after.status).toBe('validated');
     if (after.status !== 'validated' || before.status !== 'validated') return;
-    expect(after.project).toEqual(before.project);
+    const dateColor = before.project.startScreen.dateColor;
+    expect(after.project).toEqual({
+      ...before.project,
+      startScreen: {
+        ...before.project.startScreen,
+        dateColor: dateColor === null ? null : { ...dateColor, hasExplicitAlpha: true },
+      },
+    });
     expect(after.report).toEqual(before.report);
   });
 

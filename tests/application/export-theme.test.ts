@@ -127,7 +127,13 @@ describe('exportTheme', () => {
     const project = aThemeProject();
     const { recorded } = await exportWith(project);
 
-    expect(parseExportedManifest(recorded.files)).toEqual(project);
+    expect(parseExportedManifest(recorded.files)).toEqual({
+      ...project,
+      startScreen: {
+        ...project.startScreen,
+        dateColor: { ...project.startScreen.dateColor!, hasExplicitAlpha: true },
+      },
+    });
   });
 
   it('reports what it wrote', async () => {

@@ -1,6 +1,6 @@
 import { formatContentVersion } from '../../domain/model/content-version';
 import type { LocalizedText } from '../../domain/model/localized-text';
-import { formatThemeColor, type ThemeColor } from '../../domain/model/theme-color';
+import { formatThemeColor, opaqueColor, type ThemeColor } from '../../domain/model/theme-color';
 import type {
   InformationBar,
   LiveAreaPage,
@@ -115,8 +115,19 @@ const renderInformationProperty = (metadata: ThemeMetadata): XmlElement =>
 
 const renderStartScreenProperty = (startScreen: StartScreen): XmlElement =>
   xmlBranch(ELEMENTS.startScreenProperty, [
-    ...optionalColor(ELEMENTS.dateColor, startScreen.dateColor),
-    ...optional(ELEMENTS.dateLayout, startScreen.dateLayout, String),
+    // A custom lock screen needs a visible clock even when its controls are left unset.
+    // Write alpha explicitly: an RGB picker value must not become transparent ARGB.
+    ...optional(
+      ELEMENTS.dateColor,
+      startScreen.dateColor ??
+        (startScreen.background === null ? null : opaqueColor(255, 255, 255)),
+      (color) => formatThemeColor({ ...color, hasExplicitAlpha: true }),
+    ),
+    ...optional(
+      ELEMENTS.dateLayout,
+      startScreen.dateLayout ?? (startScreen.background === null ? null : 0),
+      String,
+    ),
     ...optionalPath(ELEMENTS.startScreenBackgroundPath, startScreen.background),
     ...optionalColor(ELEMENTS.notificationBackgroundColor, startScreen.notificationBackgroundColor),
     ...optionalColor(ELEMENTS.notificationBorderColor, startScreen.notificationBorderColor),

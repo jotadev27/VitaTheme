@@ -51,8 +51,8 @@ const exportTheme = async (): Promise<string> => {
   return readFile(join(destination, 'theme.xml'), 'utf8');
 };
 
-describe('notification exports', () => {
-  it('copies both chosen badges into the exported theme', async () => {
+describe('notification and clock exports', () => {
+  it('copies both chosen badges and exports a visible clock with a custom wallpaper', async () => {
     const xml = await exportTheme();
     expect(xml).toContain('<m_noNoticeFilePath>notification-none.png</m_noNoticeFilePath>');
     expect(xml).toContain('<m_newNoticeFilePath>notification-new.png</m_newNoticeFilePath>');
@@ -62,6 +62,8 @@ describe('notification exports', () => {
     expect(new Uint8Array(await readFile(join(destination, 'notification-new.png')))).toEqual(
       badge,
     );
+    expect(xml).toContain('<m_dateColor>FFFFFFFF</m_dateColor>');
+    expect(xml).toContain('<m_dateLayout>0</m_dateLayout>');
   });
 
   it('resets both badges after clearing, saving and exporting over a previous theme', async () => {

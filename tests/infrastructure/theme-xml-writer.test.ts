@@ -11,6 +11,7 @@ import {
   aThemeProject,
   anInformationBar,
   assetPath,
+  color,
 } from '../support/theme-fixtures';
 
 const reparse = (xml: string) => {
@@ -62,7 +63,45 @@ describe('serializeThemeXml', () => {
 
     expect(xml).not.toContain('m_bgmFilePath');
     expect(xml).not.toContain('m_basePageFilePath');
-    expect(xml).not.toContain('m_dateLayout');
+    expect(xml).toContain('<m_dateLayout>0</m_dateLayout>');
+  });
+
+  it('exports cleared notification badges as explicit resets', () => {
+    const xml = serializeThemeXml(
+      aThemeProject({
+        informationBar: anInformationBar({ noNoticeIcon: null, newNoticeIcon: null }),
+      }),
+    );
+    expect(xml).toContain('<m_noNoticeFilePath></m_noNoticeFilePath>');
+    expect(xml).toContain('<m_newNoticeFilePath></m_newNoticeFilePath>');
+    const parsed = reparse(xml);
+    expect(parsed.issues).toEqual([]);
+    expect(parsed.project.informationBar.noNoticeIcon).toBeNull();
+    expect(parsed.project.informationBar.newNoticeIcon).toBeNull();
+  });
+
+  it('gives a custom lock screen a visible clock when its controls are unset', () => {
+    const xml = serializeThemeXml(
+      aThemeProject({
+        startScreen: aStartScreen({ dateColor: null, dateLayout: null }),
+      }),
+    );
+    expect(xml).toContain('<m_dateColor>FFFFFFFF</m_dateColor>');
+    expect(xml).toContain('<m_dateLayout>0</m_dateLayout>');
+  });
+
+  it.each([
+    ['00D1FF', 'FF00D1FF'],
+    ['6400D1FF', '6400D1FF'],
+    ['0000D1FF', '0000D1FF'],
+  ])('exports clock colour %s with its intended alpha', (input, output) => {
+    const xml = serializeThemeXml(
+      aThemeProject({
+        startScreen: aStartScreen({ dateColor: color(input), dateLayout: 2 }),
+      }),
+    );
+    expect(xml).toContain(`<m_dateColor>${output}</m_dateColor>`);
+    expect(xml).toContain('<m_dateLayout>2</m_dateLayout>');
   });
 
   it('writes only the application icons the theme replaces', () => {
@@ -173,7 +212,15 @@ describe('serializeThemeXml', () => {
       const first = reparse(original);
       const rewritten = serializeThemeXml(first.project);
 
-      expect(reparse(rewritten).project).toEqual(first.project);
+      // Clock RGB values become explicit opaque ARGB without changing their colour.
+      const dateColor = first.project.startScreen.dateColor;
+      expect(reparse(rewritten).project).toEqual({
+        ...first.project,
+        startScreen: {
+          ...first.project.startScreen,
+          dateColor: dateColor === null ? null : { ...dateColor, hasExplicitAlpha: true },
+        },
+      });
     });
 
     it('is stable: writing twice produces identical bytes', () => {
