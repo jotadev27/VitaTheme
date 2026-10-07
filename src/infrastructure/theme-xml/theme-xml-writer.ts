@@ -26,8 +26,8 @@ const ELEMENTS = THEME_XML_ELEMENTS;
 /**
  * Omits an element entirely when the project leaves the field unset.
  *
- * The console falls back to its own default for a missing element, whereas an empty one is
- * a value it will try to interpret, so an unset field must not be written at all.
+ * Most unset fields are omitted. Notification image paths are written explicitly
+ * when cleared, matching the empty elements produced by other theme editors.
  */
 const optional = <TValue>(
   tag: string,
@@ -98,8 +98,9 @@ const renderInformationBarProperty = (bar: InformationBar): XmlElement =>
     ...optionalColor(ELEMENTS.indicatorColor, bar.indicatorColor),
     ...optionalColor(ELEMENTS.noticeFontColor, bar.noticeFontColor),
     ...optionalColor(ELEMENTS.noticeGlowColor, bar.noticeGlowColor),
-    ...optionalPath(ELEMENTS.noNoticeIconPath, bar.noNoticeIcon),
-    ...optionalPath(ELEMENTS.newNoticeIconPath, bar.newNoticeIcon),
+    // Keep reset commands in the manifest even after an image has been cleared.
+    xmlText(ELEMENTS.noNoticeIconPath, bar.noNoticeIcon ?? ''),
+    xmlText(ELEMENTS.newNoticeIconPath, bar.newNoticeIcon ?? ''),
   ]);
 
 const renderInformationProperty = (metadata: ThemeMetadata): XmlElement =>
