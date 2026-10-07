@@ -103,22 +103,34 @@ transparentIcon.composite(
 
 await mkdir(linuxIconsDirectory, { recursive: true });
 const sizes = [16, 24, 32, 48, 64, 128, 256, 512, 1024];
-const pngs = new Map();
 for (const size of sizes) {
   const png = await transparentIcon.clone().resize({ w: size, h: size }).getBuffer('image/png');
-  pngs.set(size, png);
   await writeFile(`${linuxIconsDirectory}${size}x${size}.png`, png);
 }
 
 // ICO accepts PNG frames. Carry a complete range so Windows can choose a crisp image for
 // menus, the taskbar, Explorer and high-density launchers without scaling one small frame.
+// Windows launchers allocate a square cell. The wide handheld otherwise occupies less
+// than half its height, making both the taskbar and desktop mark look undersized.
+// Trim the transparent canvas and give only the Windows variant a taller footprint.
+const windowsMark = transparentMark.clone().crop({ x: 46, y: 47, w: 758, h: 377 });
+windowsMark.resize({ w: 980, h: 800 });
+const windowsIcon = new Jimp({ width: 1024, height: 1024, color: 0x00000000 });
+windowsIcon.composite(windowsMark, 22, 112);
 const icoSizes = sizes.filter((size) => size <= 256);
+const windowsPngs = new Map();
+for (const size of icoSizes) {
+  windowsPngs.set(
+    size,
+    await windowsIcon.clone().resize({ w: size, h: size }).getBuffer('image/png'),
+  );
+}
 const header = Buffer.alloc(6 + icoSizes.length * 16);
 header.writeUInt16LE(1, 2);
 header.writeUInt16LE(icoSizes.length, 4);
 let offset = header.length;
 for (const [index, size] of icoSizes.entries()) {
-  const png = pngs.get(size);
+  const png = windowsPngs.get(size);
   const at = 6 + index * 16;
   header.writeUInt8(size === 256 ? 0 : size, at);
   header.writeUInt8(size === 256 ? 0 : size, at + 1);
@@ -130,7 +142,7 @@ for (const [index, size] of icoSizes.entries()) {
 }
 await writeFile(
   windowsIconDestination,
-  Buffer.concat([header, ...icoSizes.map((size) => pngs.get(size))]),
+  Buffer.concat([header, ...icoSizes.map((size) => windowsPngs.get(size))]),
 );
 
 process.stdout.write('Updated macOS, Windows, Linux and in-app VitaTheme icon resources.\n');
