@@ -22,15 +22,21 @@ Both applications include their runtime and work offline. Release executables ar
 
 The screenshots use original demonstration artwork.
 
-![Windows LiveArea editor](docs/images/vitatheme-editor-windows.png)
+<p align="center">
+  <img src="docs/images/vitatheme-editor-windows.png" alt="Windows LiveArea editor" width="1100">
+</p>
 
 Edit LiveArea backgrounds in a larger, centered frame.
 
-![Windows theme preview](docs/images/vitatheme-preview-windows.png)
+<p align="center">
+  <img src="docs/images/vitatheme-preview-windows.png" alt="Windows theme preview" width="1100">
+</p>
 
 Preview the home screen, start screen and theme list before exporting.
 
-![English Windows setup wizard](docs/images/vitatheme-installer-windows.png)
+<p align="center">
+  <img src="docs/images/vitatheme-installer-windows.png" alt="English Windows setup wizard" width="499">
+</p>
 
 ## Features
 
